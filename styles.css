@@ -1,0 +1,1869 @@
+/* Exercitium Imperatoris — stylesheet.
+   Phase 7 theme pass: "Gothic Industrialism" (Scribe of Iron) — palette,
+   fonts, and design rules came from a Stitch mock and are documented in
+   memory. Token block below is the single source of truth. Every visual
+   rule must consume these variables. */
+
+/* ---------------------------------------------------------------- Fonts
+   Load the three Google Fonts used by the theme. Epilogue for display
+   (gothic caps), Newsreader for body (serif parchment feel), Space
+   Grotesk for numeric labels (weights, reps, sets). The CSS @import
+   is the simplest delivery — bundling the woff2 files could be a later
+   optimization if offline use on mobile becomes a problem. */
+
+@import url("https://fonts.googleapis.com/css2?family=Epilogue:wght@400;600;700;800;900&family=Newsreader:ital,wght@0,400;0,600;1,400&family=Space+Grotesk:wght@400;500;700&family=Oswald:wght@500;600;700&family=Barlow+Condensed:wght@500;600;700&display=swap");
+
+/* ---------------------------------------------------------------- Tokens
+
+   Scoped to `.exercitium-*` root classes so we don't leak into Obsidian's
+   own UI — the chrome-hiding CSS already handles the Obsidian side.
+   Each view's root element carries one of these classes, so the tokens
+   cascade naturally into every descendant. */
+
+.exercitium-altar-root,
+.exercitium-codex,
+.exercitium-ritual,
+.exercitium-sanctum,
+/* The back bar defines the tokens itself because the Ritual renders it as a
+   SIBLING of `.exercitium-ritual`, not a descendant — each step component
+   owns its own root div, and wrapping them would double the view padding.
+   Listing it here keeps it themed wherever it's mounted. */
+.exercitium-backbar {
+  /* Surface stack. Depth comes from color shifts between these tiers,
+     never from borders or drop shadows. surface is the base wash; lift
+     content onto progressively brighter tiers to build hierarchy. */
+  --ex-surface:          #131313;
+  --ex-surface-lowest:   #0e0e0e;
+  --ex-surface-low:      #1c1b1b;
+  --ex-surface-container:#201f1f;
+  --ex-surface-high:     #2a2a2a;
+  --ex-surface-highest:  #353534;
+
+  /* Accents. Blood = action/heartbeat. Gold = achievement/Imperial
+     flourish. Gold-dim = quieter gold state. */
+  --ex-blood:      #800020;
+  --ex-blood-hot:  #a63247;  /* candle-glow hover on primary actions */
+  --ex-gold:       #f7bd48;
+  --ex-gold-dim:   #ba880f;
+
+  /* Text + outlines. on-surface is the primary parchment-ink color.
+     outline-variant is ONLY used at 15% opacity when a ghost border
+     is absolutely required — see the no-border rule below. */
+  --ex-on-surface:       #e5e2e1;
+  --ex-on-surface-muted: #a78a8a;
+  --ex-on-surface-faint: #584141;
+  --ex-parchment:        #c8c8b0;
+
+  /* Typography. */
+  --ex-font-display: "Epilogue", "Trajan Pro", "Arial Black", sans-serif;
+  --ex-font-body:    "Newsreader", Georgia, "Times New Roman", serif;
+  --ex-font-label:   "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  /* Ambient sans display variants for large numeric readouts. The Altar
+     and Sanctum "dashboard number" vibe benefits from a condensed sans
+     with more architectural presence than Space Grotesk — reads like a
+     stamped cogitator panel. Oswald is the workhorse; Barlow Condensed
+     is kept as an alt/tabular fallback for tighter tabular columns. */
+  --ex-font-numeral: "Oswald", "Barlow Condensed", "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+  --ex-font-numeral-tabular: "Barlow Condensed", "Oswald", "Space Grotesk", "Helvetica Neue", Arial, sans-serif;
+
+  /* Letter-spacing tokens. Gothic caps need aggressive tracking or
+     they read squat. Large tracking for hero headings, medium for
+     section headers, small for inline uppercase labels. */
+  --ex-tracking-lg: 0.28em;
+  --ex-tracking-md: 0.18em;
+  --ex-tracking-sm: 0.12em;
+
+  /* Candle glow. Used on active primary buttons/elements to simulate
+     flickering torchlight. Applied via box-shadow. */
+  --ex-candle-glow: 0 0 24px 2px rgba(128, 0, 32, 0.45);
+}
+
+/* Candle-flicker keyframes — a slow, irregular pulse of the blood halo.
+   The keyframe offsets are intentionally asymmetric (38%/71%) so the
+   animation doesn't read as a mechanical sine wave. Named offsets
+   roughly trace: dim → flare → settle → dim. Apply via
+   `animation: exercitium-candle-flicker 3.4s ease-in-out infinite`. */
+@keyframes exercitium-candle-flicker {
+  0%, 100% { box-shadow: 0 0 18px 1px rgba(128, 0, 32, 0.28); }
+  38%      { box-shadow: 0 0 28px 3px rgba(128, 0, 32, 0.52); }
+  71%      { box-shadow: 0 0 22px 2px rgba(128, 0, 32, 0.34); }
+}
+
+/* Reusable corner brackets. Drop `position: relative` on a container
+   and list it under this comment's applied-to selectors to gain two
+   thin gold L-shapes at top-left and bottom-right — the "high-priority
+   container" marker from the design system. Kept as a mixin-like
+   pattern (selector list + shared ::before/::after rules) rather than
+   a utility class, so no JSX changes are needed to apply it. */
+.exercitium-codex-panel::before,
+.exercitium-codex-panel::after,
+.exercitium-exercise::before,
+.exercitium-exercise::after,
+.exercitium-altar-stat-highlight::before,
+.exercitium-altar-stat-highlight::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  opacity: 0.75;
+}
+
+.exercitium-codex-panel::before,
+.exercitium-exercise::before,
+.exercitium-altar-stat-highlight::before {
+  top: 0; left: 0;
+  border-top: 2px solid var(--ex-gold);
+  border-left: 2px solid var(--ex-gold);
+}
+
+.exercitium-codex-panel::after,
+.exercitium-exercise::after,
+.exercitium-altar-stat-highlight::after {
+  bottom: 0; right: 0;
+  border-bottom: 2px solid var(--ex-gold);
+  border-right: 2px solid var(--ex-gold);
+}
+
+/* Base reset inside our views. Obsidian injects its own body font into
+   every leaf; we override at the root and let descendants inherit. No
+   border-radius anywhere, ever — this enforces the "Roundness is a
+   weakness the Imperium does not possess" rule globally. */
+.exercitium-altar-root,
+.exercitium-codex,
+.exercitium-ritual,
+.exercitium-sanctum {
+  background: var(--ex-surface);
+  color: var(--ex-on-surface);
+  font-family: var(--ex-font-body);
+}
+
+.exercitium-altar-root *,
+.exercitium-codex *,
+.exercitium-ritual *,
+.exercitium-sanctum * {
+  border-radius: 0 !important;
+}
+
+/* ---------------------------------------------------------- Chrome hiding
+
+   When <body> has the `exercitium-active` class (toggled by main.ts
+   whenever one of our views is focused), we hide the Obsidian UI pieces
+   that break grimdark immersion. The class is stripped when focus moves
+   elsewhere, so the rest of Obsidian looks normal outside our views.
+
+   Highest-leverage Phase 7 mitigation — get this working on Android before
+   touching the cosmetic theme pass. If the chrome doesn't hide on mobile,
+   nothing else matters. */
+
+body.exercitium-active .workspace-tab-header-container { display: none !important; }
+body.exercitium-active .status-bar                     { display: none !important; }
+
+/* Mobile-specific chrome. Obsidian mobile uses `.is-mobile` on <body> and
+   renders its own nav/toolbar via `.mobile-navbar` + `.mobile-toolbar`.
+   We hide the nav (back button + title bar) and the sidebar drawer toggles,
+   but leave `.mobile-toolbar` intact — that's where Malte pins the "Enter
+   the Ritual Chamber" command on his phone, so hiding it would strand him. */
+body.exercitium-active.is-mobile .mobile-navbar        { display: none !important; }
+body.exercitium-active.is-mobile .sidebar-toggle-button { display: none !important; }
+body.exercitium-active.is-mobile .view-header          { display: none !important; }
+
+/* On desktop, hide the view-header action buttons too — they render the
+   close/more menu above our React canvas and break the frame we've drawn. */
+body.exercitium-active .workspace-leaf.mod-active .view-header { display: none !important; }
+
+/* Paint the leaf container so there's no Obsidian-gray showing below
+   our content when the view doesn't fill vertically. We target both
+   `.view-content` (the element Obsidian mounts our React canvas into)
+   and its workspace-leaf ancestor so the surface color extends from
+   top edge to bottom regardless of content height. */
+body.exercitium-active .workspace-leaf.mod-active .view-content,
+body.exercitium-active .workspace-leaf.mod-active .workspace-leaf-content {
+  background: #131313 !important;
+  padding: 0 !important;
+}
+
+/* Let our React roots fill the leaf vertically. Content can still
+   center within; this just guarantees the dark surface paints all
+   the way to the bottom on short pages. */
+.exercitium-altar-root,
+.exercitium-codex,
+.exercitium-ritual,
+.exercitium-sanctum {
+  min-height: 100%;
+  box-sizing: border-box;
+}
+
+
+/* ---------------------------------------------------------------- Altar
+   Stitch-sourced design language: gothic caps title in gold, parchment
+   quote card with corner brackets, stat cards on stacked surface tiers
+   with no borders or radii, blood-red hero button with gold inner
+   bracket and candle-glow shadow. */
+
+.exercitium-altar-root {
+  padding: 1.75rem 1.25rem 3rem;
+  max-width: 32rem;
+  margin: 0 auto;
+  /* Positioning context for the splash overlay's `position: absolute`. */
+  position: relative;
+}
+
+/* Persistent candle ornament above the Altar title. The skull SVG itself
+   ships black; we filter it to the same gold as the title so it reads as
+   one crest with the heading. The flicker is a 4s loop that shifts opacity
+   and a tiny brightness/drop-shadow nudge — enough to suggest flame without
+   the jitter of a real dancing wick. Respects prefers-reduced-motion. */
+.exercitium-altar-crest {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.3rem;
+  line-height: 0;
+}
+.exercitium-altar-candle {
+  filter:
+    brightness(0) saturate(100%)
+    invert(46%) sepia(58%) saturate(420%) hue-rotate(4deg) brightness(92%) contrast(86%)
+    drop-shadow(0 0 3px rgba(212, 163, 58, 0.25));
+  animation: exercitium-altar-candle-flame 4.2s ease-in-out infinite;
+  transform-origin: 50% 100%;
+}
+@keyframes exercitium-altar-candle-flame {
+  0%   { opacity: 0.92; filter:
+           brightness(0) saturate(100%)
+           invert(46%) sepia(58%) saturate(420%) hue-rotate(4deg) brightness(92%) contrast(86%)
+           drop-shadow(0 0 3px rgba(212, 163, 58, 0.25)); }
+  37%  { opacity: 1.00; filter:
+           brightness(0) saturate(100%)
+           invert(52%) sepia(64%) saturate(480%) hue-rotate(2deg) brightness(104%) contrast(88%)
+           drop-shadow(0 0 6px rgba(232, 180, 70, 0.45)); }
+  62%  { opacity: 0.88; filter:
+           brightness(0) saturate(100%)
+           invert(42%) sepia(54%) saturate(400%) hue-rotate(6deg) brightness(86%) contrast(84%)
+           drop-shadow(0 0 2px rgba(200, 150, 50, 0.20)); }
+  100% { opacity: 0.92; filter:
+           brightness(0) saturate(100%)
+           invert(46%) sepia(58%) saturate(420%) hue-rotate(4deg) brightness(92%) contrast(86%)
+           drop-shadow(0 0 3px rgba(212, 163, 58, 0.25)); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .exercitium-altar-candle { animation: none; }
+}
+
+/* Hero title — gothic caps in aged gold. Tracking is aggressive to
+   mimic carved-letter inscription; any narrower and it reads like a
+   normal h1, which breaks the "monolithic archive" feel. */
+.exercitium-title {
+  font-family: var(--ex-font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: var(--ex-gold);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-lg);
+  text-align: center;
+  margin: 0 0 0.25rem 0;
+}
+
+.exercitium-subtitle {
+  font-family: var(--ex-font-label);
+  font-size: 0.75rem;
+  color: var(--ex-on-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  text-align: center;
+  font-style: normal;  /* override the old italic placeholder */
+  margin: 0 0 1.75rem 0;
+}
+
+.exercitium-footnote {
+  opacity: 0.4;
+  font-size: 0.75rem;
+  margin-top: 2.5rem;
+  text-align: center;
+  font-family: var(--ex-font-label);
+  letter-spacing: var(--ex-tracking-sm);
+  text-transform: uppercase;
+}
+
+/* Pilgrimage banner — a muted surface tier with zero border, relying
+   on the background shift (not a stroke) for separation per the design
+   rules. Kept italic Newsreader to read as a pause/lament. */
+.exercitium-altar-pause {
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--ex-surface-low);
+  color: var(--ex-parchment);
+  font-family: var(--ex-font-body);
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+/* Rites of Convalescence — the grimdark banner shown during Cardio Week
+   telling the user how to spend it (light lifts, doubled cardio). Sits
+   below the pause banner and wants a slightly heavier presence: a gold
+   heading, a 2px gold ghost-bar at the bottom to echo the highlight
+   stat card, and a parchment body paragraph. No border otherwise —
+   the tier shift + ghost-bar do the separation. */
+.exercitium-altar-rites {
+  padding: 1rem 1.25rem 1.1rem;
+  margin-bottom: 1.25rem;
+  background: var(--ex-surface-container);
+  border-bottom: 2px solid var(--ex-gold);
+}
+.exercitium-altar-rites-heading {
+  margin: 0 0 0.5rem 0;
+  font-family: var(--ex-font-display);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: var(--ex-tracking-lg);
+  text-transform: uppercase;
+  color: var(--ex-gold);
+}
+.exercitium-altar-rites-body {
+  margin: 0;
+  font-family: var(--ex-font-body);
+  font-size: 0.95rem;
+  line-height: 1.55;
+  color: var(--ex-parchment);
+}
+
+/* Stat row — three equal tiles on surface-container, no borders. */
+.exercitium-altar-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.6rem;
+  margin: 1.25rem 0 1.75rem 0;
+}
+
+.exercitium-altar-stat {
+  position: relative;  /* bracket anchor for the highlight variant */
+  background: var(--ex-surface-container);
+  padding: 0.85rem 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 5.5rem;
+  /* Subtle bottom-weighted bar in place of a full border — Stitch's
+     "2px ghost-bar" pattern. It's the ONLY stroke we allow on these
+     cards, and even this could be dropped if it reads as noise. */
+  border-bottom: 2px solid var(--ex-on-surface-faint);
+}
+
+/* Highlight state — used for the "next rotation" card. Swap the ghost
+   bar to gold and fade in a radial primary wash so the card feels
+   like it's under active torchlight. */
+.exercitium-altar-stat-highlight {
+  border-bottom-color: var(--ex-gold);
+  background: linear-gradient(
+    135deg,
+    var(--ex-surface-container) 0%,
+    rgba(128, 0, 32, 0.1) 100%
+  );
+}
+
+/* Numeric value — Oswald (ambient sans display variant) for the stamped
+   "cogitator panel" feel. Condensed caps-style numerals give the big
+   stats more presence than a uniform sans, and keep their verticality
+   next to the gothic title. Tabular figures so columns of numbers stay
+   aligned. The order in the HTML is label→value so visually the eye
+   lands on the big gold number. */
+.exercitium-altar-stat-value {
+  font-family: var(--ex-font-numeral);
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  font-variant-numeric: tabular-nums;
+  color: var(--ex-gold);
+  line-height: 1.05;
+  margin-top: 0.35rem;
+}
+
+.exercitium-altar-stat-highlight .exercitium-altar-stat-value {
+  color: var(--ex-on-surface);  /* gold bar already signals the accent */
+}
+
+.exercitium-altar-stat-label {
+  font-family: var(--ex-font-label);
+  font-size: 0.65rem;
+  font-weight: 500;
+  color: var(--ex-on-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  line-height: 1.3;
+}
+
+.exercitium-altar-stat-highlight .exercitium-altar-stat-label {
+  color: var(--ex-gold);
+}
+
+/* Quote card — the centerpiece. Parchment-italic serif text on a
+   low-tier surface, framed by 2px gold corner brackets. The brackets
+   are rendered via ::before/::after absolute pseudos so we don't need
+   extra DOM. Blockquote element is what React renders. */
+.exercitium-altar-quote {
+  position: relative;
+  margin: 0 0 2rem 0;
+  padding: 2rem 1.75rem;
+  background: var(--ex-surface-low);
+  font-family: var(--ex-font-body);
+  font-style: italic;
+  font-size: 1.05rem;
+  line-height: 1.55;
+  text-align: center;
+  color: var(--ex-on-surface);
+}
+
+.exercitium-altar-quote::before,
+.exercitium-altar-quote::after {
+  content: "";
+  position: absolute;
+  width: 1.1rem;
+  height: 1.1rem;
+  border-color: var(--ex-gold);
+  opacity: 0.7;
+}
+
+.exercitium-altar-quote::before {
+  top: 0; left: 0;
+  border-top: 2px solid var(--ex-gold);
+  border-left: 2px solid var(--ex-gold);
+}
+
+.exercitium-altar-quote::after {
+  bottom: 0; right: 0;
+  border-bottom: 2px solid var(--ex-gold);
+  border-right: 2px solid var(--ex-gold);
+}
+
+/* Deployment block (the in-workout card). No top border per the
+   no-borders rule; separation comes from vertical rhythm. */
+.exercitium-altar-deployment {
+  margin-top: 2rem;
+  padding-top: 1.25rem;
+}
+
+/* --------------------------------------------------------------- Sanctum */
+
+.exercitium-sanctum {
+  padding: 1.75rem 1.25rem 3rem;
+  max-width: 44rem;
+  margin: 0 auto;
+}
+
+.exercitium-sanctum h2 {
+  font-family: var(--ex-font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: var(--ex-gold);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-lg);
+  text-align: center;
+  margin: 0 0 0.25rem 0;
+}
+
+.exercitium-sanctum h3 {
+  font-family: var(--ex-font-display);
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--ex-gold);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  margin-top: 1.75rem;
+}
+
+.exercitium-sanctum-table {
+  width: 100%;
+  margin-top: 1rem;
+  border-collapse: collapse;
+}
+
+/* Rows sit directly on the surface — no row borders. Hover adds a
+   surface-low band for the "torchlight sweeps over this entry" effect. */
+.exercitium-sanctum-table th,
+.exercitium-sanctum-table td {
+  padding: 0.7rem 0.75rem;
+  border-bottom: 0;
+}
+
+.exercitium-sanctum-table th {
+  font-family: var(--ex-font-label);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  color: var(--ex-on-surface-muted);
+  text-align: left;
+}
+
+.exercitium-sanctum-table tbody tr {
+  background: var(--ex-surface-low);
+}
+
+.exercitium-sanctum-table tbody tr:nth-child(even) {
+  background: var(--ex-surface-container);
+}
+
+.exercitium-sanctum-table tbody tr:hover {
+  background: var(--ex-surface-high);
+}
+
+.exercitium-sanctum-num {
+  text-align: right;
+  font-family: var(--ex-font-numeral-tabular);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: 0.02em;
+}
+
+/* Status pills — one per MEV/MAV/MRV zone. Explicit hex colors rather than
+   Obsidian theme vars so the red/green/yellow meaning survives in every
+   theme. Borders are slightly darker than the fill so the pill still has
+   edge definition on both light and dark backgrounds. */
+.exercitium-sanctum-status {
+  display: inline-block;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border: 1px solid transparent;
+  white-space: nowrap;
+  cursor: help; /* the title tooltip explains what the color means */
+}
+
+.exercitium-sanctum-status-under_mev {
+  background: #3a1010;
+  color: #ffb4b4;
+  border-color: #8a3030;
+}
+
+.exercitium-sanctum-status-mev_mav {
+  background: #0e2a0e;
+  color: #a8dba8;
+  border-color: #2e6b2e;
+}
+
+.exercitium-sanctum-status-mav_mrv {
+  background: #332600;
+  color: #f0d070;
+  border-color: #8a6a1a;
+}
+
+/* Over-MRV shares the red warning but uses a brighter accent so the user
+   can distinguish "not enough" from "too much" at a glance. */
+.exercitium-sanctum-status-over_mrv {
+  background: #4a1020;
+  color: #ffc0d0;
+  border-color: #a02050;
+}
+
+/* --------------------------------------------------------------- Ritual */
+
+.exercitium-react-root {
+  padding: 0; /* individual views own their padding */
+}
+
+.exercitium-ritual {
+  padding: 1.75rem 1.25rem 3rem;
+  max-width: 42rem;
+  margin: 0 auto;
+}
+
+.exercitium-ritual h2 {
+  font-family: var(--ex-font-display);
+  font-weight: 800;
+  font-size: 1.3rem;
+  color: var(--ex-gold);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-lg);
+  margin: 0 0 0.25rem 0;
+}
+
+.exercitium-ritual h3 {
+  font-family: var(--ex-font-display);
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--ex-gold);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  margin-top: 1.5rem;
+}
+
+/* Buttons — sharp 0px corners, blood/gold palette, candle-glow on hero.
+   Primary is the blood-red action: "BEGIN THE RITUAL", "End the Session".
+   Secondary is a surface-container variant for less important actions
+   (Declare pilgrimage, Cancel, etc.). Both use Epilogue caps to carry
+   the Imperial voice. */
+
+/* Primary button — gold surface, void text. Stitch's Imperial-gold
+   palette used as a filled panel rather than just accent ink; reads
+   like a pressed brass action plate.
+
+   !important is needed on the color pair because Obsidian's default
+   .theme-dark button styling has higher specificity than our class
+   selector and was silently winning the cascade (buttons rendered
+   near-white). The other properties don't collide. */
+.exercitium-btn {
+  padding: 0.9rem 1.25rem;
+  font-family: var(--ex-font-display);
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  background: #f7bd48 !important;
+  color: #0e0e0e !important;
+  border: 0;
+  cursor: pointer;
+  transition: filter 120ms ease, transform 120ms ease;
+  box-shadow: none;
+}
+
+.exercitium-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+  background: #f7bd48 !important;
+}
+
+.exercitium-btn:active:not(:disabled) {
+  transform: scale(0.98);
+  filter: brightness(1.18);
+}
+
+.exercitium-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Secondary — a quieter alternate for "Cancel", "Back", "Declare LoA".
+   Dark surface with gold text. Visually recedes behind the primary. */
+.exercitium-btn-secondary {
+  background: #2a2a2a !important;
+  color: #f7bd48 !important;
+}
+
+/* Secondary hover needs its own override because the base
+   .exercitium-btn:hover rule forces background to gold, which collides
+   with the secondary's gold text and renders it illegible. Keep the dark
+   surface and let the filter: brightness(1.1) from the base rule provide
+   the feedback. */
+.exercitium-btn-secondary:hover:not(:disabled) {
+  background: #2a2a2a !important;
+  color: #f7bd48 !important;
+}
+
+/* Hero "BEGIN THE RITUAL" button. Full-width, wider padding, bigger
+   type, animated candle-flicker halo so it feels lit from within.
+   The static box-shadow fallback keeps the glow visible for users who
+   have `prefers-reduced-motion` enabled (the animation is disabled in
+   the media query below). Inherits the gold-bg/void-text pattern from
+   .exercitium-btn. */
+.exercitium-begin-btn {
+  display: block;
+  width: 100%;
+  margin: 1.5rem 0 0 0;
+  padding: 1.25rem 1rem;
+  font-size: 1.15rem;
+  letter-spacing: var(--ex-tracking-lg);
+  box-shadow: var(--ex-candle-glow);
+  animation: exercitium-candle-flicker 3.4s ease-in-out infinite;
+}
+
+/* End-of-session button — matches the primary shape but centered and
+   with its own font-sized body. Given its own declaration (rather than
+   composing with .exercitium-btn) because the HTML uses it as a bare
+   class, not alongside .exercitium-btn. */
+.exercitium-end-btn {
+  display: block;
+  margin: 2rem auto 0;
+  padding: 1rem 2.5rem;
+  font-family: var(--ex-font-display);
+  font-size: 1.05rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-lg);
+  background: #f7bd48 !important;
+  color: #0e0e0e !important;
+  border: 0;
+  cursor: pointer;
+  transition: filter 120ms ease, transform 120ms ease;
+  animation: exercitium-candle-flicker 3.4s ease-in-out infinite;
+}
+
+.exercitium-end-btn:hover:not(:disabled) {
+  filter: brightness(1.1);
+}
+
+.exercitium-end-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Inputs */
+.exercitium-input {
+  padding: 0.5rem 0.75rem;
+  font-size: 1rem;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border-radius: 4px;
+}
+
+.exercitium-input-narrow {
+  width: 5rem;
+}
+
+.exercitium-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-top: 0.75rem;
+  flex-wrap: wrap;
+}
+
+/* Slot banner — the "PUSH / PULL / LEGS" label at the top of the
+   Ritual view. Background-shift separation (no border-left). The slot
+   name is hero-size Epilogue gold; the position subtitle rides under
+   it in muted label text. */
+.exercitium-banner {
+  display: flex;
+  align-items: baseline;
+  gap: 1rem;
+  padding: 1.1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  background: var(--ex-surface-container);
+}
+
+/* CARDIO DUE variant of the banner — shown on the Altar when the next
+   rotation slot is a preset-baked cardio day (Sanguinary Split). A
+   darker red wash + gold ghost-bar separates it visually from a
+   normal strength slot so the user reads "not a lift day" at a
+   glance. */
+.exercitium-banner-cardio {
+  background: linear-gradient(
+    135deg,
+    var(--ex-surface-container) 0%,
+    rgba(128, 0, 32, 0.18) 100%
+  );
+  border-bottom: 2px solid var(--ex-gold);
+}
+
+.exercitium-banner-slot {
+  font-family: var(--ex-font-display);
+  font-size: 1.8rem;
+  font-weight: 800;
+  letter-spacing: var(--ex-tracking-lg);
+  text-transform: uppercase;
+  color: var(--ex-gold);
+}
+
+.exercitium-banner-position {
+  font-family: var(--ex-font-label);
+  color: var(--ex-on-surface-muted);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-sm);
+  font-style: normal;
+}
+
+/* Exercise menu (the "pick something" grid). */
+.exercitium-menu {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.exercitium-menu-item {
+  padding: 0.5rem 0.85rem;
+  border: 1px solid var(--background-modifier-border);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.95rem;
+}
+
+.exercitium-menu-item:hover:not(:disabled) {
+  background: var(--interactive-hover);
+}
+
+.exercitium-menu-item-picked,
+.exercitium-menu-item:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+/* Cardio finisher picker — deliberately NOT the exercise menu class.
+   The exercise menu fades picked items (opacity 0.4) because "picked" there
+   means "already added, don't add again". The cardio picker is a single-
+   select radio: the selected tile should read as ACTIVE, not disabled.
+   A 2-column grid on mobile stays easy to thumb; the selected tile gets
+   a gold outline + tinted background. */
+.exercitium-cardio-picker {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.exercitium-cardio-pick-item {
+  padding: 0.85rem 0.85rem;
+  background: var(--ex-surface-container);
+  color: var(--ex-on-surface);
+  font-family: var(--ex-font-label);
+  font-size: 0.95rem;
+  letter-spacing: var(--ex-tracking-sm);
+  text-transform: uppercase;
+  cursor: pointer;
+  border: none;
+  border-radius: 0;
+  transition: background 120ms ease, color 120ms ease, box-shadow 120ms ease;
+}
+
+.exercitium-cardio-pick-item:hover {
+  background: var(--ex-surface-container-high, #2a2a2a);
+  color: var(--ex-gold);
+}
+
+.exercitium-cardio-pick-item-selected {
+  background: var(--ex-surface-container-high, #2a2a2a);
+  color: var(--ex-gold);
+  /* Gold inset ring — our design rules say no border-radius, so we use
+     a box-shadow inset to draw the outline without introducing rounding. */
+  box-shadow: inset 0 0 0 2px var(--ex-gold);
+}
+
+/* Minutes input block for the cardio finisher. Sits directly below the
+   picker with generous top margin so it's unmistakably a separate step.
+   The label echoes the currently-selected modality so the user sees their
+   pick reflected even after the tile list scrolls out of view. */
+.exercitium-cardio-minutes {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+  margin-bottom: 1.25rem;
+}
+
+.exercitium-cardio-minutes-label {
+  font-family: var(--ex-font-label);
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-sm);
+  color: var(--ex-on-surface-muted);
+}
+
+/* Per-exercise set logger — a high-priority container during live ritual,
+   so it gets the gold corner brackets via the bracket pseudo-element
+   block near the top of this file. No border, no radius per design rules;
+   depth comes from sitting on a brighter surface tier than the page. */
+.exercitium-exercise {
+  position: relative;  /* bracket anchor */
+  padding: 1rem 1.1rem;
+  margin-bottom: 1rem;
+  background: var(--ex-surface-container);
+}
+
+.exercitium-exercise-name {
+  margin: 0 0 0.5rem;
+  letter-spacing: 0.08em;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+/* Prescribed-sets counter, right-aligned against the exercise name.
+   Muted while the sets are still owed; gold once the target is met. */
+.exercitium-set-count {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  font-weight: normal;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  opacity: 0.55;
+  white-space: nowrap;
+}
+
+.exercitium-set-count-met {
+  color: #caa03d;
+  opacity: 1;
+}
+
+.exercitium-sets {
+  margin: 0.5rem 0;
+  padding-left: 1.5rem;
+  opacity: 0.85;
+}
+
+.exercitium-sets li {
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------- Bodymap */
+
+.exercitium-bodymap-root {
+  margin: 1.25rem 0;
+}
+
+/* Parchment-bg frame so the dark-red body silhouette reads clearly.
+   The inset shadows fake a double illuminated-manuscript border in dark
+   gold + parchment + dark gold, without needing a separate ::before.
+
+   Padding leaves space for the aquila + skulls that sit INSIDE the frame
+   (previously they hung outside on negative offsets and looked janky when
+   the frame clipped). Top room = aquila (52px tall) + a little breathing
+   space; bottom room = skull (34px) + same. */
+.exercitium-bodymap-frame {
+  position: relative;
+  background: #e8d5a0; /* aged parchment */
+  border: 2px double #4a3a0a;
+  box-shadow: inset 0 0 0 1px #8a6f2a, inset 0 0 0 4px #e8d5a0,
+    inset 0 0 0 5px #4a3a0a;
+  padding: 4rem 1.25rem 3rem;
+  margin: 0 auto;
+  max-width: 460px;
+}
+
+.exercitium-bodymap-frame-inner {
+  background: transparent;
+}
+
+.exercitium-bodymap-models {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: center;
+  align-items: flex-start;
+}
+
+/* Imperial Aquila centered at the top of the frame, inside the illuminated
+   border band. Sits in the frame's top padding so it doesn't collide with
+   the body silhouettes below. Parchment backing is retained because it
+   blends cleanly into the frame background. */
+.exercitium-bodymap-aquila {
+  position: absolute;
+  top: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 0 0.5rem;
+  background: #e8d5a0;
+  line-height: 0;
+  pointer-events: none;
+}
+
+/* Four corner skulls, inside the frame in the padding gutters. The frame's
+   side padding + body widths leave roughly 70px of clearance per side at
+   the rendered max-width — a 34px skull at 10px inset stays well clear of
+   the bodies. Top skulls share the top band with the aquila (it's centered,
+   they're in the corners). */
+.exercitium-bodymap-skull {
+  position: absolute;
+  background: #e8d5a0;
+  padding: 2px;
+  line-height: 0;
+  pointer-events: none;
+}
+.exercitium-bodymap-skull-tl { top: 10px; left: 10px; }
+.exercitium-bodymap-skull-tr { top: 10px; right: 10px; }
+.exercitium-bodymap-skull-bl { bottom: 10px; left: 10px; }
+.exercitium-bodymap-skull-br { bottom: 10px; right: 10px; }
+
+/* All four candles point upward. The right-side skulls mirror their
+   left-side counterparts so the candle on top of each skull tilts
+   inward toward the frame center rather than off the page. */
+.exercitium-bodymap-skull-tr { transform: scaleX(-1); }
+.exercitium-bodymap-skull-br { transform: scaleX(-1); }
+
+/* Click-drawer that opens below the body when a muscle is tapped. */
+.exercitium-bodymap-drawer {
+  margin: 0.75rem auto 0;
+  max-width: 460px;
+  background: #120707;
+  border: 1px solid #8a7a3a;
+  padding: 0.75rem 1rem;
+  color: #c9b57a;
+}
+
+.exercitium-bodymap-drawer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.exercitium-bodymap-drawer-header h3 {
+  margin: 0;
+  letter-spacing: 0.12em;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: 0.95rem;
+  color: #d4af37;
+}
+
+.exercitium-bodymap-drawer-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.exercitium-bodymap-drawer-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #2a1a0a;
+  font-variant-numeric: tabular-nums;
+}
+
+.exercitium-bodymap-drawer-list li:last-child {
+  border-bottom: none;
+}
+
+.exercitium-bodymap-drawer-stats {
+  opacity: 0.85;
+}
+
+/* ---------------------------------------------------------------- Codex
+   Phase 6 — Codex Imperialis stats view. Each chart lives in a Panel
+   block; the page stacks them vertically and scrolls. Palette-wise these
+   rules use the same grimdark colors baked into chartUtils.tsx so the
+   page and the chart internals read as one coherent artifact. */
+
+.exercitium-codex {
+  padding: 1.75rem 1.25rem 3rem;
+  max-width: 900px;
+  margin: 0 auto;
+}
+
+.exercitium-codex h2 {
+  font-family: var(--ex-font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: var(--ex-gold);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-lg);
+  text-align: center;
+  margin: 0 0 0.25rem 0;
+}
+
+/* Codex panels — each chart gets its own "archive plate" on a slightly
+   brighter surface tier than the page. No border, no radius; the
+   color shift between page surface and panel surface is the whole
+   separation mechanism. */
+.exercitium-codex-panel {
+  position: relative;  /* bracket anchor */
+  margin: 1.5rem 0;
+  padding: 1.1rem 1.25rem;
+  background: var(--ex-surface-low);
+}
+
+.exercitium-codex-panel-title {
+  margin: 0 0 0.15rem 0;
+  font-family: var(--ex-font-display);
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: var(--ex-tracking-md);
+  text-transform: uppercase;
+  color: var(--ex-gold);
+}
+
+.exercitium-codex-panel-subtitle {
+  margin: 0 0 0.85rem 0;
+  font-family: var(--ex-font-body);
+  font-size: 0.85rem;
+  font-style: italic;
+  color: var(--ex-on-surface-muted);
+}
+
+.exercitium-codex-panel-body {
+  margin-top: 0.5rem;
+}
+
+.exercitium-codex-empty {
+  padding: 1.5rem 0.5rem;
+  text-align: center;
+  font-style: italic;
+  opacity: 0.6;
+}
+
+.exercitium-codex-datacount {
+  font-size: 0.78rem;
+  color: #8a7a3a;
+  opacity: 0.75;
+  margin-bottom: 0.35rem;
+  letter-spacing: 0.03em;
+}
+
+/* Astartes Aspiration — lift picker chip row */
+
+.exercitium-codex-lift-picker {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.6rem;
+  align-items: center;
+}
+
+.exercitium-codex-lift-picker-label {
+  font-size: 0.8rem;
+  opacity: 0.65;
+  margin-right: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.exercitium-codex-lift-chip {
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  border: 1px solid #4a3a10;
+  background: transparent;
+  color: #8a7a3a;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.exercitium-codex-lift-chip:hover {
+  border-color: #8a6f2a;
+  color: #c9b57a;
+}
+
+.exercitium-codex-lift-chip-on {
+  background: #3a2a10;
+  border-color: #caa03d;
+  color: #caa03d;
+}
+
+/* Days of Glory — streak ribbon. Each cell is a fixed-size square and
+   rows wrap at DAYS_PER_ROW (30). State colors mirror chartUtils so the
+   legend swatches and ribbon cells are pixel-identical. */
+
+.exercitium-codex-ribbon {
+  margin-top: 0.25rem;
+}
+
+.exercitium-codex-ribbon-row {
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 2px;
+  margin-bottom: 2px;
+}
+
+.exercitium-codex-ribbon-cell {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+  border: 1px solid #0a0404;
+  flex: 0 0 auto;
+}
+
+.exercitium-codex-ribbon-cell-trained { background: #a63232; }
+.exercitium-codex-ribbon-cell-cardio  { background: #caa03d; }
+.exercitium-codex-ribbon-cell-loa     { background: #c9c0a0; }
+.exercitium-codex-ribbon-cell-rest    { background: #2a1a0a; }
+
+.exercitium-codex-ribbon-legend {
+  margin-top: 0.75rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+  font-size: 0.8rem;
+  opacity: 0.8;
+}
+
+.exercitium-codex-ribbon-legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Week of Praise — chronological list of completed Cardio Weeks. One
+   row per week, dates on the left, stats on the right. Kept sparse on
+   purpose; the user already has a dense chart panel above. */
+
+.exercitium-codex-praise-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.exercitium-codex-praise-item {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px solid #2a1a0a;
+  font-variant-numeric: tabular-nums;
+}
+
+.exercitium-codex-praise-item:last-child {
+  border-bottom: none;
+}
+
+.exercitium-codex-praise-dates {
+  color: #caa03d;
+  letter-spacing: 0.04em;
+}
+
+.exercitium-codex-praise-stats {
+  opacity: 0.8;
+  font-size: 0.9rem;
+}
+
+/* ----------------------------------------------------------------------
+   Splash overlay — 600ms threshold-crossing on Altar mount
+   ----------------------------------------------------------------------
+   Fills the Altar leaf with an opaque black scrim, a candle-skull SVG,
+   and the plugin's name in display type. Fades out after 400ms visible
+   + 200ms opacity transition. Absolute positioning keeps it overlaid on
+   the Altar's own content; pointer-events: none on the fading state so
+   it never blocks a user who taps during the animation. */
+.exercitium-splash {
+  position: absolute;
+  inset: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0705;
+  opacity: 1;
+  transition: opacity 200ms ease-out;
+}
+
+.exercitium-splash-fading {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.exercitium-splash-inner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  color: #caa03d;
+  text-align: center;
+}
+
+.exercitium-splash-title {
+  font-family: var(--ex-font-display);
+  color: #caa03d;
+  letter-spacing: 0.14em;
+  font-size: 1.6rem;
+  margin: 0.4rem 0 0 0;
+}
+
+.exercitium-splash-subtitle {
+  font-family: var(--ex-font-body);
+  color: #c9c0a0;
+  font-style: italic;
+  margin: 0;
+}
+
+/* ----------------------------------------------------------------------
+   PR banner — "THE EMPEROR PROTECTS"
+   ----------------------------------------------------------------------
+   Flashes inside the set-logger when a freshly logged set produces a new
+   estimated 1RM. Gold border + blood-red glow so it reads as both holy
+   and martial; stays onscreen until the user dismisses it or logs
+   another set. Shares the palette with the rest of the plugin — no
+   bespoke variables, just the existing theme tokens. */
+.exercitium-pr-banner {
+  margin: 0.75rem 0;
+  padding: 0.6rem 0.8rem;
+  background: linear-gradient(
+    180deg,
+    rgba(166, 50, 50, 0.14) 0%,
+    rgba(202, 160, 61, 0.12) 100%
+  );
+  border: 2px solid #caa03d;
+  box-shadow: 0 0 0.6rem rgba(166, 50, 50, 0.45);
+  color: #e8dfc7;
+}
+
+.exercitium-pr-banner-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.exercitium-pr-banner-title {
+  font-family: var(--ex-font-display);
+  color: #caa03d;
+  letter-spacing: 0.08em;
+  font-size: 1rem;
+  text-transform: uppercase;
+}
+
+.exercitium-pr-banner-body {
+  margin-top: 0.3rem;
+  font-size: 0.95rem;
+  color: #e8dfc7;
+}
+
+/* -----------------------------------------------------------------------
+   Achievement screen — shown after a Ritual save when one or more cards
+   have fired (five distinct exercises, ten/fifteen sets per muscle group,
+   or two hours of weekly cardio). Each card reads as an illuminated entry
+   in the retinue's ledger: gold hairline frame, stacked type hierarchy,
+   and the companion quote set as a blockquote with an attribution line.
+   The fade-in is a single opacity + translate transition rather than a
+   bounce — the tone we want is "a name inscribed," not "VICTORY ROYALE."
+   ----------------------------------------------------------------------- */
+
+.exercitium-achievements {
+  text-align: center;
+}
+
+.exercitium-achievements-heading {
+  font-family: var(--ex-font-display);
+  letter-spacing: 0.08em;
+  color: #caa03d;
+  margin-bottom: 0.25rem;
+  text-transform: uppercase;
+}
+
+.exercitium-achievements-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  margin: 1.25rem 0 1.5rem;
+}
+
+.exercitium-achievement-card {
+  padding: 0.9rem 1rem;
+  background: linear-gradient(
+    180deg,
+    rgba(20, 20, 22, 0.8) 0%,
+    rgba(30, 26, 18, 0.85) 100%
+  );
+  border: 1px solid #caa03d;
+  box-shadow: 0 0 0.5rem rgba(202, 160, 61, 0.3);
+  color: #e8dfc7;
+  text-align: left;
+  animation: exercitium-achievement-fade-in 420ms ease-out both;
+}
+
+@keyframes exercitium-achievement-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.exercitium-achievement-title {
+  font-family: var(--ex-font-display);
+  letter-spacing: 0.1em;
+  color: #caa03d;
+  font-size: 1.05rem;
+  text-transform: uppercase;
+}
+
+.exercitium-achievement-detail {
+  margin-top: 0.2rem;
+  font-family: var(--ex-font-label);
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  color: #b0a890;
+  text-transform: uppercase;
+}
+
+.exercitium-achievement-quote {
+  margin: 0.7rem 0 0.3rem;
+  padding-left: 0.7rem;
+  border-left: 2px solid #caa03d;
+  font-style: italic;
+  font-size: 0.95rem;
+  line-height: 1.4;
+  color: #e8dfc7;
+}
+
+.exercitium-achievement-attribution {
+  text-align: right;
+  font-family: var(--ex-font-label);
+  font-size: 0.8rem;
+  letter-spacing: 0.08em;
+  color: #b0a890;
+  text-transform: uppercase;
+}
+
+/* Rare-companion card — the weekly 69-set award. Given a distinct treatment
+   so the user clocks it immediately as "this is the big one": a RARE tag in
+   the top-right, a richer radial gold wash, a thicker outer ring, and a
+   breathing candle-glow underneath the fade-in. The rare tag doubles as a
+   visual anchor so this card still reads as an achievement card (same shape)
+   while standing a clear notch above the base variant. */
+.exercitium-achievement-card-rare {
+  position: relative;
+  padding-top: 1.6rem;
+  background:
+    radial-gradient(
+      circle at 50% 0%,
+      rgba(202, 160, 61, 0.22) 0%,
+      rgba(30, 26, 18, 0.9) 55%,
+      rgba(20, 20, 22, 0.92) 100%
+    );
+  border: 2px solid #e8c063;
+  box-shadow:
+    0 0 0 1px rgba(232, 192, 99, 0.15),
+    0 0 1.2rem rgba(232, 192, 99, 0.45);
+  animation:
+    exercitium-achievement-fade-in 420ms ease-out both,
+    exercitium-achievement-rare-glow 4.8s ease-in-out 420ms infinite;
+}
+.exercitium-achievement-card-rare .exercitium-achievement-title {
+  color: #f3d27c;
+  font-size: 1.2rem;
+  letter-spacing: 0.14em;
+}
+.exercitium-achievement-card-rare .exercitium-achievement-quote {
+  border-left-color: #f3d27c;
+}
+.exercitium-achievement-rare-tag {
+  position: absolute;
+  top: 0.5rem;
+  right: 0.7rem;
+  font-family: var(--ex-font-label);
+  font-size: 0.6rem;
+  letter-spacing: 0.2em;
+  color: #1a1a1a;
+  background: #f3d27c;
+  padding: 0.1rem 0.45rem;
+}
+@keyframes exercitium-achievement-rare-glow {
+  0%, 100% { box-shadow:
+    0 0 0 1px rgba(232, 192, 99, 0.15),
+    0 0 1.0rem rgba(232, 192, 99, 0.35); }
+  50%      { box-shadow:
+    0 0 0 1px rgba(232, 192, 99, 0.22),
+    0 0 1.8rem rgba(232, 192, 99, 0.60); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .exercitium-achievement-card-rare { animation: exercitium-achievement-fade-in 420ms ease-out both; }
+}
+
+/* Error state. Use explicit high-contrast colors — the Obsidian
+   `--text-error` variable is a red that ends up unreadable on
+   `--background-modifier-error` in light themes. Long URLs / stack
+   traces get `overflow-wrap: anywhere` so they wrap cleanly. */
+.exercitium-error {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  padding: 1rem;
+  background: #2a0a0a;
+  color: #ffd6d6;
+  border: 1px solid #8a3030;
+  border-radius: 4px;
+  font-family: var(--font-monospace);
+  font-size: 0.85rem;
+  line-height: 1.4;
+}
+
+/* ---------------------------------------------------------------- Chronicle
+   The Chronicle is Obsidian's stock Modal with our palette painted over it.
+   We grab the outer modal chrome by id'ing it from the TS side
+   (`modalEl.addClass("exercitium-chronicle-modal")`) so we can override the
+   default light bg/text without bleeding into any other modal in the user's
+   vault. The inner `.exercitium-chronicle` is our content area — a vertical
+   stack of: title, subtitle, stat grid, top-3 list. */
+
+.exercitium-chronicle-modal .modal {
+  background: var(--ex-surface);
+  color: var(--ex-on-surface);
+}
+.exercitium-chronicle-modal .modal-close-button {
+  color: var(--ex-on-surface-muted);
+}
+
+.exercitium-chronicle {
+  font-family: var(--ex-font-body);
+  padding: 0.25rem 0.5rem;
+}
+
+.exercitium-chronicle-loading {
+  color: var(--ex-on-surface-muted);
+  font-family: var(--ex-font-label);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  font-size: 0.75rem;
+  text-align: center;
+  margin: 0.75rem 0;
+}
+
+.exercitium-chronicle-header {
+  text-align: center;
+  margin-bottom: 1rem;
+}
+
+.exercitium-chronicle-title {
+  font-family: var(--ex-font-display);
+  font-weight: 800;
+  font-size: 1.4rem;
+  color: var(--ex-gold);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-lg);
+  margin: 0 0 0.3rem 0;
+}
+
+.exercitium-chronicle-subtitle {
+  font-family: var(--ex-font-label);
+  font-size: 0.7rem;
+  color: var(--ex-on-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  margin: 0;
+}
+
+/* Stat grid — two columns on narrow modals, three when there's room. Each
+   cell mirrors the Altar's stat treatment (big gold numeral, small label). */
+.exercitium-chronicle-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem;
+  margin: 0.75rem 0 1rem;
+}
+@media (min-width: 460px) {
+  .exercitium-chronicle-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.exercitium-chronicle-stat {
+  background: var(--ex-surface-container);
+  padding: 0.65rem 0.75rem;
+  text-align: center;
+}
+
+.exercitium-chronicle-stat-value {
+  font-family: var(--ex-font-numeral);
+  font-size: 1.4rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  color: var(--ex-gold);
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+}
+
+.exercitium-chronicle-stat-label {
+  margin-top: 0.2rem;
+  font-family: var(--ex-font-label);
+  font-size: 0.6rem;
+  color: var(--ex-on-surface-muted);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+}
+
+.exercitium-chronicle-stat-highlight {
+  background: linear-gradient(
+    180deg,
+    rgba(202, 160, 61, 0.18) 0%,
+    rgba(30, 26, 18, 0.9) 100%
+  );
+  box-shadow: inset 0 0 0 1px rgba(232, 192, 99, 0.4);
+}
+.exercitium-chronicle-stat-highlight .exercitium-chronicle-stat-value {
+  color: #f3d27c;
+}
+
+.exercitium-chronicle-section-heading {
+  font-family: var(--ex-font-display);
+  font-size: 0.9rem;
+  color: var(--ex-gold);
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  margin: 0.75rem 0 0.35rem 0;
+}
+
+.exercitium-chronicle-toplist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.exercitium-chronicle-toplist li {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid #2a1a0a;
+  font-family: var(--ex-font-body);
+}
+.exercitium-chronicle-toplist li:last-child {
+  border-bottom: none;
+}
+.exercitium-chronicle-toplist-num {
+  font-family: var(--ex-font-numeral-tabular);
+  font-variant-numeric: tabular-nums;
+  color: var(--ex-gold);
+}
+
+.exercitium-chronicle-empty {
+  color: var(--ex-on-surface-muted);
+  font-style: italic;
+  text-align: center;
+  margin: 0.75rem 0;
+}
+
+/* Settings: rotation preset expansion list — a read-only enumeration of
+   the active preset's slot sequence rendered under the dropdown, so the
+   user can see what "Sanguinary Split" actually is without a second
+   click. Lives inside Obsidian's settings pane, which supplies its own
+   text color, so we only restyle spacing + list marker weight here. */
+.exercitium-settings-preset-list {
+  margin: 0.25rem 0 0.75rem 1.25rem;
+  padding: 0;
+  font-family: var(--ex-font-label);
+  font-size: 0.85rem;
+  letter-spacing: var(--ex-tracking-sm);
+  text-transform: uppercase;
+}
+.exercitium-settings-preset-list li {
+  margin: 0.1rem 0;
+  color: var(--ex-parchment);
+}
+.exercitium-settings-preset-list li::marker {
+  color: var(--ex-gold);
+  font-family: var(--ex-font-numeral-tabular);
+}
+
+/* ---------------------------------------------------------------------------
+   Back navigation
+   ---------------------------------------------------------------------------
+   Present on every leaf view and every mid-flow Ritual step. The Ritual
+   Chamber collapses both sidebars and the global theme hides Obsidian's tab
+   bar, so without this there is no visible way out of a view.
+
+   Deliberately quiet: it must be findable at a glance and impossible to
+   confuse with the gold primary action. Muted parchment text, no fill, no
+   border — it reads as chrome, not as a choice. */
+
+.exercitium-backbar {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  /* Full-bleed against the view's own padding so the control sits in the
+     corner rather than floating inside the content column. */
+  padding: 0.6rem 1rem 0.2rem;
+  background: transparent;
+}
+
+.exercitium-back-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.35rem 0.1rem;
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--ex-on-surface-muted) !important;
+  font-family: var(--ex-font-label);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-sm);
+  cursor: pointer;
+  /* Comfortable thumb target on mobile without visually enlarging the
+     control — the padding above stays small, this sets the floor. */
+  min-height: 40px;
+}
+
+.exercitium-back-btn:hover {
+  color: var(--ex-gold) !important;
+}
+
+.exercitium-back-chevron {
+  flex: 0 0 auto;
+  /* Nudges the chevron off the text so the pair reads as one unit. */
+  margin-right: 0.1rem;
+}
+
+.exercitium-backbar-hint {
+  font-family: var(--ex-font-body);
+  font-size: 0.78rem;
+  font-style: italic;
+  color: var(--ex-on-surface-faint);
+}
+
+/* ---------------------------------------------------------------------------
+   Workout switcher
+   ---------------------------------------------------------------------------
+   Bottom of the exercise picker: train a day other than the one the rotation
+   decreed. Collapsed to a single quiet line until asked for, so it never
+   competes with "End the Ritual" directly above it. */
+
+.exercitium-switcher {
+  margin: 1.5rem auto 0;
+  text-align: center;
+}
+
+.exercitium-switcher-open {
+  max-width: 34rem;
+  padding: 1rem;
+  background: var(--ex-surface-low);
+  border-top: 1px solid var(--ex-on-surface-faint);
+}
+
+.exercitium-switcher-toggle {
+  background: none !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--ex-on-surface-muted) !important;
+  font-family: var(--ex-font-label);
+  font-size: 0.72rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-sm);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  cursor: pointer;
+  min-height: 40px;
+  padding: 0 0.5rem;
+}
+
+.exercitium-switcher-toggle:hover {
+  color: var(--ex-gold) !important;
+}
+
+.exercitium-switcher-title {
+  font-family: var(--ex-font-display);
+  font-size: 0.85rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: var(--ex-tracking-md);
+  color: var(--ex-gold-dim);
+  margin-bottom: 0.4rem;
+}
+
+/* Auto-fit rather than a fixed column count: the Astartes preset offers two
+   alternatives, Litany offers four. Both should fill the row evenly. */
+.exercitium-switcher-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.5rem;
+  margin: 0.75rem 0;
+}
+
+.exercitium-switcher-option {
+  padding: 0.85rem 0.5rem;
+  background: var(--ex-surface-high) !important;
+  color: var(--ex-parchment) !important;
+  border: 1px solid transparent !important;
+  font-family: var(--ex-font-label);
+  font-size: 0.8rem;
+  font-weight: 700;
+  letter-spacing: var(--ex-tracking-sm);
+  cursor: pointer;
+}
+
+.exercitium-switcher-option:hover {
+  border-color: var(--ex-gold-dim) !important;
+}
+
+/* The tapped option stays visibly selected while the confirm prompt is up,
+   so the user can see WHICH day they're about to switch to. */
+.exercitium-switcher-option-pending {
+  border-color: var(--ex-gold) !important;
+  color: var(--ex-gold) !important;
+}
+
+.exercitium-switcher-confirm {
+  margin-top: 0.5rem;
+}
+
+.exercitium-switcher-warning {
+  font-family: var(--ex-font-body);
+  font-size: 0.85rem;
+  color: var(--ex-blood-hot);
+  margin: 0 0 0.6rem;
+}
+
+/* Cardio-only entry point on the Altar. Full width like "Begin the Ritual"
+   so the pair reads as one stack of choices, but visually demoted — no
+   candle glow, no flicker, smaller type. Lifting is the plugin's purpose;
+   this is the honest alternative on a day it isn't happening. */
+.exercitium-cardio-only-btn {
+  display: block;
+  width: 100%;
+  margin: 0.6rem 0 0 0;
+  padding: 0.9rem 1rem;
+  font-size: 0.9rem;
+  letter-spacing: var(--ex-tracking-md);
+}
+
+/* "Other exercise" — the escape hatch from the day's prescribed list.
+   Deliberately quieter than the menu itself: the plan is the default path,
+   and this is a deliberate detour. Full width so it reads as a divider
+   between the planned lifts and everything else. */
+.exercitium-other-toggle {
+  display: block;
+  width: 100%;
+  margin: 0.5rem 0 0 0;
+  padding: 0.6rem;
+  background: transparent;
+  border: 1px dashed #4a4438;
+  border-radius: 2px;
+  color: #b0a890;
+  font-size: 0.8rem;
+  letter-spacing: var(--ex-tracking-md);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.exercitium-other-toggle:hover {
+  border-color: #8a6f2a;
+  color: #c9b57a;
+}
+
+/* The expanded library: search box plus the full exercise grid. Capped in
+   height and scrolled internally so 45 entries can't push "End the Ritual"
+   off the bottom of a phone screen. */
+.exercitium-other-panel {
+  margin-top: 0.5rem;
+  padding: 0.6rem;
+  border: 1px solid #35302a;
+  border-radius: 2px;
+  max-height: 20rem;
+  overflow-y: auto;
+}
+
+.exercitium-other-panel .exercitium-input {
+  width: 100%;
+  margin-bottom: 0.5rem;
+}
+
+/* "Close" — declare a lift finished for the session. Sits opposite the set
+   counter in the exercise header; quiet, since the common path is logging
+   sets, not stopping. */
+.exercitium-close-set {
+  flex: 0 0 auto;
+  margin-left: 0.6rem;
+  padding: 0.15rem 0.5rem;
+  background: transparent;
+  border: 1px solid #4a4438;
+  color: #b0a890;
+  font-size: 0.62rem;
+  letter-spacing: var(--ex-tracking-sm);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.exercitium-close-set:hover {
+  border-color: #8a6f2a;
+  color: #c9b57a;
+}
+
+/* A closed lift recedes: still readable, visibly done. */
+.exercitium-exercise-closed {
+  opacity: 0.62;
+}
+
+.exercitium-closed-note {
+  margin: 0.4rem 0 0 0;
+  font-size: 0.78rem;
+  font-style: italic;
+  color: #b0a890;
+}

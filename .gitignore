@@ -1,0 +1,10 @@
+node_modules/
+# Build output goes straight to the vault, not this folder — but just in case
+# someone ever runs a build that emits locally, keep main.js out of git.
+main.js
+*.map
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
