@@ -467,27 +467,44 @@ export function AltarApp({
         <blockquote className="exercitium-altar-quote">"{quote}"</blockquote>
       )}
 
-      <button
-        className="exercitium-btn exercitium-begin-btn"
-        onClick={onBeginRitual}
-      >
-        Begin the Ritual
-      </button>
+      {/* Two entry points, and which one leads depends on the week.
+          Normally lifting is the point, so the Ritual gets the glowing
+          primary button. Inside a deload the Imperium is counselling rest,
+          so cardio leads and the Ritual drops to "Lift anyway" underneath.
 
-      {/* Cardio-only session. Secondary to the Ritual on purpose — lifting
-          is the point of the plugin — but a first-class entry point rather
-          than something reached by starting a workout and backing out of it.
-          Saves with a null rotation position, so the lift day that was next
-          is still next; it counts toward the weekly 3/5 conditions all the
-          same. Hidden during a Cardio Week, where the whole week is already
-          a cardio deload and logging a one-off on top would double-count. */}
-      {!derived.pausedInCardio && (
-        <button
-          className="exercitium-btn exercitium-btn-secondary exercitium-cardio-only-btn"
-          onClick={onBeginCardio}
-        >
-          The Lungs Alone — cardio only
-        </button>
+          The cardio button used to be hidden outright during a deload, on
+          the theory that the whole week already was one. That was backwards
+          — a deload week is precisely when you want to log a march, and
+          hiding it left no way to record one at all. */}
+      {(derived.pausedInCardio
+        ? ["cardio", "ritual"]
+        : ["ritual", "cardio"]
+      ).map((which) =>
+        which === "cardio" ? (
+          <button
+            key="cardio"
+            className={
+              derived.pausedInCardio
+                ? "exercitium-btn exercitium-begin-btn"
+                : "exercitium-btn exercitium-btn-secondary exercitium-cardio-only-btn"
+            }
+            onClick={onBeginCardio}
+          >
+            The Lungs Alone — cardio only
+          </button>
+        ) : (
+          <button
+            key="ritual"
+            className={
+              derived.pausedInCardio
+                ? "exercitium-btn exercitium-btn-secondary exercitium-cardio-only-btn"
+                : "exercitium-btn exercitium-begin-btn"
+            }
+            onClick={onBeginRitual}
+          >
+            {derived.pausedInCardio ? "Lift anyway" : "Begin the Ritual"}
+          </button>
+        ),
       )}
 
       {/* Skip this rotation — only shown when not currently paused in an

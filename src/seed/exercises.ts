@@ -18,35 +18,33 @@
 //   - targetSets: sets the plan calls for. 4 on the delt/tricep/chest work,
 //     3 on the heavy compounds and the leg/pulling machines.
 //
-// The three planned days (Astartes Triptych — push/pull/legs), with each
-// movement's set prescription:
+// The three planned days (Astartes Triptych — push/pull/legs). Every
+// movement carries four sets.
 //
-//   Push  (6 exercises, 23 sets)      Pull  (6 exercises, 20 sets)
-//     1 Bench Press               4     1 Deadlift                    4
-//     2 Shoulder Press            4     2 Seated Cable Row            3
-//     3 Dips (assisted)           4     3 Bent-Over DB Row            3
-//     4 Lateral Raises            4     4 Lat Pulldown                3
-//     5 Tricep Pushdown           4     5 Face Pull / Rev. Pec Deck   4
-//     6 DB Wrist Curl & Ext.      3     6 Bicep Curl (Cable)          3
-//   Legs  (5 exercises, 16 sets)
-//     2 Shoulder Press   4     5 Leg Extension    3
-//     3 Leg Press        3     6 Sit-ups          3
-//     4 Leg Curl         3
+//   Push                          Pull                        Legs
+//     1 Barbell Bench Press         1 Chin-ups                  1 Leg Press (Feet High)
+//     2 Standing Overhead Press     2 Barbell Row               2 Deadlift
+//     3 Incline Dumbbell Press      3 Dumbbell Curls            3 Leg Extension
+//     4 Dumbbell Lateral Raise      4 Dumbbell Rear Delt Fly    4 Leg Curl
 //
-// Shoulder Press sits on BOTH push and legs. `order` is one number per
-// exercise, not per slot, so its position (2) has to serve both days — it
-// opens leg day and sits second on push. Squat, Hanging Leg Raise and
-// Pallof Press came off leg day; Pull-ups and the seated bicep curl came
-// off pull day. All of them keep their files and their logged history, and
-// stay reachable via "Other exercise".
+// Ids are reused wherever the movement already existed, even where the
+// display name changed (lateral_raise, overhead_press, leg_press, deadlift,
+// seated_curl). A session file references an exercise by id, so reusing one
+// keeps every logged set and the progression history attached. Only
+// `chinup` is new, and only because the supinated grip makes it a different
+// lift from the pull-up rather than a rename of it.
 //
-// Movements that used to sit on a push/pull/legs day but aren't on the plan
-// keep their files (and therefore their logged history and volume credit) —
-// they just carry no push/pull/legs slot, so the Ritual menu never offers
-// them. Re-adding a slot in the vault file brings one back instantly, and
-// they stay pickable mid-workout through the Ritual's "Other exercise"
-// search — which is how the lifts that used to live on the retired `upper`
-// and `lower` days remain reachable.
+// Movements dropped from the plan keep their files and their logged history
+// and simply carry no slot, so the Ritual menu stops offering them while the
+// Sanctum still credits what was done. They stay pickable mid-workout from
+// "Other exercise". That currently covers dips, tricep pushdown, wrist curl,
+// seated cable row, bent-over DB row, lat pulldown, face pull, cable curl,
+// sit-ups, pull-ups, squat, hanging leg raise and pallof press.
+//
+// Known gaps in this block, stated rather than hidden: no direct triceps,
+// calf or ab work. Triceps take secondary credit from the three presses and
+// abs from the standing press, but calves get nothing at all — expect the
+// Sanctum to read them under-MEV for as long as this plan runs.
 
 import type { ExerciseFile } from "../domain/schemas";
 import { DEFAULT_EXERCISE_ORDER } from "../domain/schemas";
@@ -60,7 +58,7 @@ export const SEED_EXERCISES: ExerciseFile[] = [
   // ------------------------------------------------------------ Push (1..6)
   {
     id: "bench_press",
-    displayName: "Bench Press",
+    displayName: "Barbell Bench Press",
     primaryMuscles: ["chest"],
     secondaryMuscles: ["triceps", "front_delts"],
     rotationSlots: ["push"],
@@ -73,10 +71,10 @@ export const SEED_EXERCISES: ExerciseFile[] = [
   },
   {
     id: "overhead_press",
-    displayName: "Shoulder Press",
+    displayName: "Standing Overhead Press",
     primaryMuscles: ["front_delts"],
-    secondaryMuscles: ["triceps", "side_delts"],
-    rotationSlots: ["push", "legs"],
+    secondaryMuscles: ["triceps", "side_delts", "abs"],
+    rotationSlots: ["push"],
     order: 2,
     targetSets: SETS_4,
     equipment: "barbell",
@@ -92,8 +90,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     // them at 0.5x credit under-counted every push day's tricep volume.
     primaryMuscles: ["chest", "triceps"],
     secondaryMuscles: ["front_delts"],
-    rotationSlots: ["push"],
-    order: 3,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_4,
     equipment: "bodyweight",
     progression: "double",
@@ -104,7 +102,7 @@ export const SEED_EXERCISES: ExerciseFile[] = [
   },
   {
     id: "lateral_raise",
-    displayName: "Lateral Raises",
+    displayName: "Dumbbell Lateral Raise",
     primaryMuscles: ["side_delts"],
     secondaryMuscles: [],
     rotationSlots: ["push"],
@@ -120,8 +118,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "Tricep Pushdown",
     primaryMuscles: ["triceps"],
     secondaryMuscles: [],
-    rotationSlots: ["push"],
-    order: 5,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_4,
     equipment: "cable",
     progression: "double",
@@ -133,8 +131,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "DB Wrist Curl & Extension",
     primaryMuscles: ["forearms"],
     secondaryMuscles: [],
-    rotationSlots: ["push"],
-    order: 6,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_3,
     equipment: "dumbbell",
     progression: "double",
@@ -153,8 +151,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     // week saw, which read as chronically under-MEV in the Sanctum.
     primaryMuscles: ["hamstrings", "glutes", "back", "lower_back"],
     secondaryMuscles: ["lats", "forearms", "quads"],
-    rotationSlots: ["pull"],
-    order: 1,
+    rotationSlots: ["legs"],
+    order: 2,
     targetSets: SETS_4,
     equipment: "barbell",
     progression: "linear",
@@ -166,8 +164,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "Seated Cable Row",
     primaryMuscles: ["back"],
     secondaryMuscles: ["lats", "biceps", "rear_delts"],
-    rotationSlots: ["pull"],
-    order: 2,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_3,
     equipment: "cable",
     progression: "double",
@@ -179,8 +177,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "Bent-Over Dumbbell Row",
     primaryMuscles: ["back"],
     secondaryMuscles: ["lats", "biceps", "rear_delts"],
-    rotationSlots: ["pull"],
-    order: 3,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_3,
     equipment: "dumbbell",
     progression: "double",
@@ -205,8 +203,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "Lat Pulldown",
     primaryMuscles: ["lats"],
     secondaryMuscles: ["back", "biceps"],
-    rotationSlots: ["pull"],
-    order: 4,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_3,
     equipment: "cable",
     progression: "double",
@@ -218,8 +216,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "Face Pull / Reverse Pec Deck",
     primaryMuscles: ["rear_delts"],
     secondaryMuscles: ["back"],
-    rotationSlots: ["pull"],
-    order: 5,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_4,
     equipment: "cable",
     progression: "double",
@@ -233,8 +231,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "Bicep Curl (Cable)",
     primaryMuscles: ["biceps"],
     secondaryMuscles: ["forearms"],
-    rotationSlots: ["pull"],
-    order: 6,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_3,
     equipment: "cable",
     progression: "double",
@@ -243,12 +241,12 @@ export const SEED_EXERCISES: ExerciseFile[] = [
   },
   {
     id: "seated_curl",
-    displayName: "Bicep Curl (Seated)",
+    displayName: "Dumbbell Curls",
     primaryMuscles: ["biceps"],
     secondaryMuscles: ["forearms"],
-    rotationSlots: [],
-    order: DEFAULT_EXERCISE_ORDER,
-    targetSets: SETS_3,
+    rotationSlots: ["pull"],
+    order: 3,
+    targetSets: SETS_4,
     equipment: "dumbbell",
     progression: "double",
     bodyweight: false,
@@ -271,16 +269,16 @@ export const SEED_EXERCISES: ExerciseFile[] = [
   },
   {
     id: "leg_press",
-    displayName: "Leg Press",
-    primaryMuscles: ["quads"],
-    secondaryMuscles: ["glutes", "hamstrings"],
+    displayName: "Leg Press (Feet High)",
+    primaryMuscles: ["glutes", "quads"],
+    secondaryMuscles: ["hamstrings"],
     rotationSlots: ["legs"],
-    order: 3,
-    targetSets: SETS_3,
+    order: 1,
+    targetSets: SETS_4,
     equipment: "machine",
     progression: "double",
     bodyweight: false,
-    notes: "",
+    notes: "Feet high on the platform.",
   },
   {
     id: "leg_curl",
@@ -289,7 +287,7 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     secondaryMuscles: [],
     rotationSlots: ["legs"],
     order: 4,
-    targetSets: SETS_3,
+    targetSets: SETS_4,
     equipment: "machine",
     progression: "double",
     bodyweight: false,
@@ -301,8 +299,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     primaryMuscles: ["quads"],
     secondaryMuscles: [],
     rotationSlots: ["legs"],
-    order: 5,
-    targetSets: SETS_3,
+    order: 3,
+    targetSets: SETS_4,
     equipment: "machine",
     progression: "double",
     bodyweight: false,
@@ -340,8 +338,8 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "Sit-ups",
     primaryMuscles: ["abs"],
     secondaryMuscles: ["obliques"],
-    rotationSlots: ["legs"],
-    order: 6,
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
     targetSets: SETS_3,
     equipment: "bodyweight",
     progression: "double",
@@ -356,12 +354,12 @@ export const SEED_EXERCISES: ExerciseFile[] = [
   // them) and are reachable from "Other exercise" during any workout.
   {
     id: "rear_delt_fly",
-    displayName: "Rear Delt Fly",
+    displayName: "Dumbbell Rear Delt Fly",
     primaryMuscles: ["rear_delts"],
     secondaryMuscles: ["back"],
-    rotationSlots: [],
-    order: DEFAULT_EXERCISE_ORDER,
-    targetSets: SETS_3,
+    rotationSlots: ["pull"],
+    order: 4,
+    targetSets: SETS_4,
     equipment: "dumbbell",
     progression: "double",
     bodyweight: false,
@@ -547,9 +545,9 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     displayName: "Incline Dumbbell Press",
     primaryMuscles: ["chest"],
     secondaryMuscles: ["front_delts", "triceps"],
-    rotationSlots: [],
-    order: DEFAULT_EXERCISE_ORDER,
-    targetSets: SETS_3,
+    rotationSlots: ["push"],
+    order: 3,
+    targetSets: SETS_4,
     equipment: "dumbbell",
     progression: "double",
     bodyweight: false,
@@ -608,13 +606,29 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     notes: "",
   },
   {
+    id: "chinup",
+    displayName: "Chin-ups",
+    // Supinated grip, so the biceps are a prime mover rather than an
+    // accessory. That is the whole difference from the pull-up, which keeps
+    // its own file and its own logged history.
+    primaryMuscles: ["lats", "biceps"],
+    secondaryMuscles: ["back", "forearms"],
+    rotationSlots: ["pull"],
+    order: 1,
+    targetSets: SETS_4,
+    equipment: "bodyweight",
+    progression: "double",
+    bodyweight: true,
+    notes: "",
+  },
+  {
     id: "barbell_row",
     displayName: "Barbell Row",
     primaryMuscles: ["back"],
-    secondaryMuscles: ["lats", "biceps", "rear_delts"],
-    rotationSlots: [],
-    order: DEFAULT_EXERCISE_ORDER,
-    targetSets: SETS_3,
+    secondaryMuscles: ["lats", "biceps", "rear_delts", "lower_back"],
+    rotationSlots: ["pull"],
+    order: 2,
+    targetSets: SETS_4,
     equipment: "barbell",
     progression: "double",
     bodyweight: false,

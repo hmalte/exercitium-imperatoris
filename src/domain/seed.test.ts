@@ -195,42 +195,57 @@ describe("the seeded push/pull/legs plan", () => {
   it("orders the push day as prescribed", async () => {
     const push = await day("push");
     expect(push.map((e) => e.displayName)).toEqual([
-      "Bench Press",
-      "Shoulder Press",
-      "Dips (assisted)",
-      "Lateral Raises",
-      "Tricep Pushdown",
-      "DB Wrist Curl & Extension",
+      "Barbell Bench Press",
+      "Standing Overhead Press",
+      "Incline Dumbbell Press",
+      "Dumbbell Lateral Raise",
     ]);
-    expect(push.map((e) => e.targetSets)).toEqual([4, 4, 4, 4, 4, 3]);
+    expect(push.map((e) => e.targetSets)).toEqual([4, 4, 4, 4]);
   });
 
   it("orders the pull day as prescribed", async () => {
     const pull = await day("pull");
     expect(pull.map((e) => e.displayName)).toEqual([
-      "Deadlift",
-      "Seated Cable Row",
-      "Bent-Over Dumbbell Row",
-      "Lat Pulldown",
-      "Face Pull / Reverse Pec Deck",
-      "Bicep Curl (Cable)",
+      "Chin-ups",
+      "Barbell Row",
+      "Dumbbell Curls",
+      "Dumbbell Rear Delt Fly",
     ]);
-    expect(pull.map((e) => e.targetSets)).toEqual([4, 3, 3, 3, 4, 3]);
+    expect(pull.map((e) => e.targetSets)).toEqual([4, 4, 4, 4]);
   });
 
   it("orders the legs day as prescribed", async () => {
     const legs = await day("legs");
-    // Shoulder Press opens leg day: it sits on both push and legs, and
-    // `order` is one number per exercise, so its push position (2) places
-    // it first here too.
     expect(legs.map((e) => e.displayName)).toEqual([
-      "Shoulder Press",
-      "Leg Press",
-      "Leg Curl",
+      "Leg Press (Feet High)",
+      "Deadlift",
       "Leg Extension",
-      "Sit-ups",
+      "Leg Curl",
     ]);
-    expect(legs.map((e) => e.targetSets)).toEqual([4, 3, 3, 3, 3]);
+    expect(legs.map((e) => e.targetSets)).toEqual([4, 4, 4, 4]);
+  });
+
+  // Muscle mapping is the part most easily got wrong on a reshuffle, and
+  // wrong mappings quietly corrupt every volume readout in the Sanctum.
+  it("maps the movements that differ from their obvious cousins", async () => {
+    const adapter = new InMemoryVaultAdapter();
+    await seedVault(adapter);
+    const byId = new Map((await loadAllExercises(adapter)).map((e) => [e.id, e]));
+
+    // Chin-ups are supinated, so the biceps are a prime mover. The pull-up
+    // keeps its own file with biceps merely secondary.
+    expect(byId.get("chinup")!.primaryMuscles).toEqual(["lats", "biceps"]);
+    expect(byId.get("pullup")!.primaryMuscles).toEqual(["lats"]);
+
+    // Feet high moves the work up the chain toward hip extension.
+    expect(byId.get("leg_press")!.primaryMuscles).toEqual(["glutes", "quads"]);
+    expect(byId.get("leg_press")!.secondaryMuscles).toEqual(["hamstrings"]);
+
+    // Standing press braces through the trunk; seated would not.
+    expect(byId.get("overhead_press")!.secondaryMuscles).toContain("abs");
+
+    // The bent-over hold loads the erectors for the whole set.
+    expect(byId.get("barbell_row")!.secondaryMuscles).toContain("lower_back");
   });
 
   it("keeps retired lifts as files but off every planned day", async () => {
@@ -240,18 +255,25 @@ describe("the seeded push/pull/legs plan", () => {
     const byId = new Map(all.map((e) => [e.id, e]));
 
     for (const id of [
-      "barbell_row",
-      "incline_db_press",
+      // Never on the current plan.
       "front_squat",
       "standing_calf_raise",
       "cable_fly",
-      // Came off leg day; history and volume credit must survive.
       "back_squat",
       "hanging_leg_raise",
       "pallof_press",
-      // Came off pull day.
+      "situps",
+      // Dropped in the latest reshuffle — every one of these carries logged
+      // sets, so the files must survive even though no day offers them.
+      "dips",
+      "tricep_pushdown",
+      "db_wrist_curl",
+      "seated_row",
+      "bent_over_db_row",
+      "lat_pulldown",
+      "face_pull",
+      "cable_curl",
       "pullup",
-      "seated_curl",
     ]) {
       const ex = byId.get(id);
       // The file still exists — history and volume credit are intact…

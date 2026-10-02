@@ -51,7 +51,9 @@ import {
   type RotationSlot,
 } from "../domain/schemas";
 import {
+  deriveCardioWeekRanges,
   isCardioWeekDue,
+  isInLeaveOfAbsence,
   nextRotationPosition,
   type LoA,
   type Session,
@@ -233,6 +235,10 @@ export function RitualApp({
   // the rest of the form from this and clear it; if they abandon, we
   // clear the stored copy and null this out.
   const [pendingDraft, setPendingDraft] = useState<RitualDraft | null>(null);
+  /** True when today falls inside an active deload week. Changes what the
+   *  cardio-choice screen says and where accepting it leads: a deload day
+   *  logs a march via "The Lungs Alone", not another cardio-week marker. */
+  const [inDeload, setInDeload] = useState(false);
 
   // -------------------------------------------------------------------------
   // Mount: figure out which slot we're on, whether cardio is due, and what
@@ -291,12 +297,22 @@ export function RitualApp({
         //      demands cardio today, so skipping the sleep prompt would
         //      drop us into the strength menu with no exercises.
         //   3. Otherwise, normal: sleep → logging.
+        const tlSessions = sessionsForTimeLogic(loadedSessions);
         const dueForCardio = isCardioWeekDue(
-          sessionsForTimeLogic(loadedSessions),
+          tlSessions,
           loasForTimeLogic(loas),
           today,
         );
-        if (dueForCardio) {
+        // Already INSIDE a deload week, as opposed to merely due for one.
+        // isCardioWeekDue goes false the moment a deload starts (the counter
+        // resets), so on its own it would drop a deload day straight into
+        // the lifting menu with no way to reach cardio at all.
+        const insideCardioWeek = isInLeaveOfAbsence(
+          today,
+          deriveCardioWeekRanges(tlSessions),
+        );
+        setInDeload(insideCardioWeek);
+        if (dueForCardio || insideCardioWeek) {
           setStep("cardio_choice");
         } else {
           const slotHere =
@@ -814,7 +830,12 @@ export function RitualApp({
   if (step === "cardio_choice") {
     return withBack(
       <CardioChoiceStep
-        onCardio={() => goTo("cardio")}
+        inDeload={inDeload}
+        // Already in a deload: the week is flagged, so what is wanted now is
+        // the march itself — modality and minutes — not a second cardio-week
+        // marker. Route to the standalone flow. Only the "a deload is due"
+        // case declares a new Cardio Week.
+        onCardio={() => goTo(inDeload ? "standalone_cardio" : "cardio")}
         onDefer={() =>
           // If the rotation itself has landed on its cardio day (Sanguinary
           // Split), "Lift anyway" still can't lift — there are no
@@ -1056,9 +1077,12 @@ function RestoreDraftStep({
 }
 
 function CardioChoiceStep({
+  inDeload,
   onCardio,
   onDefer,
 }: {
+  /** Inside a deload already, rather than being offered one. */
+  inDeload: boolean;
   onCardio: () => void;
   onDefer: () => void;
 }) {
@@ -1066,12 +1090,13 @@ function CardioChoiceStep({
     <div className="exercitium-ritual">
       <h2>The flesh demands respite.</h2>
       <p className="exercitium-subtitle">
-        Six weeks have passed since the last deload. The Imperium counsels a
-        Cardio Week.
+        {inDeload
+          ? "The deload is already decreed. Give the lungs their due, or take up the iron regardless."
+          : "Six weeks have passed since the last deload. The Imperium counsels a Cardio Week."}
       </p>
       <div className="exercitium-row">
         <button className="exercitium-btn" onClick={onCardio}>
-          Observe the deload
+          {inDeload ? "The Lungs Alone" : "Observe the deload"}
         </button>
         <button
           className="exercitium-btn exercitium-btn-secondary"
