@@ -107,6 +107,11 @@ export type RitualAppProps = {
    *                  straight to the cardio session step; saves a lift-free
    *                  session that does NOT advance the rotation. */
   mode?: RitualMode;
+  /** Bumped by the view when this leaf regains focus. Re-reads the exercise
+   *  LIBRARY only — deliberately not the whole mount effect, which also
+   *  picks the starting step. A lingering Ritual leaf would otherwise serve
+   *  whichever plan was current when it was first opened. */
+  reloadNonce?: number;
   /** Called after the session is saved. View uses this to close itself. */
   onComplete: () => void;
   /** Called when the user backs out of the Ritual BEFORE saving — the back
@@ -176,6 +181,7 @@ export function RitualApp({
   rotationOrder,
   incrementsKg,
   mode = "auto",
+  reloadNonce,
   onComplete,
   onExit,
 }: RitualAppProps) {
@@ -330,6 +336,31 @@ export function RitualApp({
       cancelled = true;
     };
   }, [adapter, today, mode]);
+
+  // Refresh just the exercise library when the leaf regains focus.
+  //
+  // Scoped narrowly on purpose. The mount effect above also calls setStep,
+  // so re-running it would drop a half-logged workout back to the sleep
+  // prompt and lose the sets. This only replaces the menu's source data,
+  // which is safe at any point: entries already added to the session keep
+  // the display name they were added under, and nothing about the current
+  // step changes. Skipped on first render, where the mount effect has it.
+  useEffect(() => {
+    if (reloadNonce === undefined || reloadNonce === 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const refreshed = await loadAllExercises(adapter);
+        if (!cancelled) setAllExercises(refreshed);
+      } catch {
+        // Keep whatever we already have; a failed refresh must not break
+        // an in-progress session.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [adapter, reloadNonce]);
 
   // Use the user-configured rotation order; fall back to compile-time
   // defaults if an empty array somehow slipped through.

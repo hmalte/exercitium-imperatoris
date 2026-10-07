@@ -10,13 +10,17 @@ import { ItemView, WorkspaceLeaf } from "obsidian";
 import { createElement } from "react";
 import { mountReact, type ReactMountHandle } from "../obsidian/reactMount";
 import { ObsidianVaultAdapter } from "../obsidian/ObsidianVaultAdapter";
-import { RitualApp } from "../react/RitualApp";
+import { RitualApp, type RitualMode } from "../react/RitualApp";
 import type ExercitiumPlugin from "../main";
 
 export const RITUAL_VIEW_TYPE = "exercitium-ritual";
 
 export class RitualView extends ItemView {
   private mount: ReactMountHandle | null = null;
+  /** Bumped on refocus so the exercise library is re-read. */
+  private nonce = 0;
+  /** Captured once: the mode must not be re-consumed on every re-render. */
+  private mode: RitualMode = "auto";
 
   constructor(
     leaf: WorkspaceLeaf,
@@ -38,39 +42,43 @@ export class RitualView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
-    const adapter = new ObsidianVaultAdapter(this.app);
-    // Compute today's date once at open time. UI treats it as stable even if
-    // the user is crossing midnight mid-workout.
-    const today = new Date().toISOString().slice(0, 10);
-
-    this.mount = mountReact(
-      this.containerEl,
-      // React.createElement because this file is .ts, not .tsx. The actual
-      // RitualApp component uses JSX internally.
-      createElement(RitualApp, {
-        adapter,
-        today,
-        displayUnit: this.plugin.settings.displayUnit,
-        rotationOrder: this.plugin.settings.rotationOrder,
-        incrementsKg: this.plugin.settings.incrementsKg,
-        // Consumed (and reset to "auto") here, so a cardio-only launch can't
-        // leak into the next Ritual the user opens normally.
-        mode: this.plugin.consumePendingRitualMode(),
-        onComplete: () => {
-          // Detach the leaf (closes the view tab). Workspace will reveal the
-          // previously active leaf, which is usually the Altar.
-          this.leaf.detach();
-        },
-        // Backing out of the Ritual before it's saved. Explicitly opens the
-        // Altar rather than relying on detach revealing whatever was
-        // underneath — the user came here to go BACK, and "back" from the
-        // Ritual has exactly one meaning. Any logged sets are already in
-        // the autosaved draft and are offered again on the next open.
-        onExit: () => {
-          void this.plugin.returnToAltar(this.leaf);
-        },
+    // Consumed once, here — re-reading it on every refresh would hand back
+    // "auto" and silently drop a cardio-only launch.
+    this.mode = this.plugin.consumePendingRitualMode();
+    this.renderApp();
+    this.registerEvent(
+      this.app.workspace.on("active-leaf-change", (leaf) => {
+        if (leaf === this.leaf) {
+          this.nonce++;
+          this.renderApp();
+        }
       }),
     );
+  }
+
+  private renderApp(): void {
+    const adapter = new ObsidianVaultAdapter(this.app);
+    const today = new Date().toISOString().slice(0, 10);
+    const element = createElement(RitualApp, {
+      adapter,
+      today,
+      displayUnit: this.plugin.settings.displayUnit,
+      rotationOrder: this.plugin.settings.rotationOrder,
+      incrementsKg: this.plugin.settings.incrementsKg,
+      mode: this.mode,
+      reloadNonce: this.nonce,
+      onComplete: () => {
+        this.leaf.detach();
+      },
+      onExit: () => {
+        void this.plugin.returnToAltar(this.leaf);
+      },
+    });
+    if (this.mount) {
+      this.mount.render(element);
+      return;
+    }
+    this.mount = mountReact(this.containerEl, element);
   }
 
   async onClose(): Promise<void> {
