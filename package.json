@@ -1,6 +1,6 @@
 {
   "name": "exercitium-imperatoris",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "description": "Grimdark personal workout tracker for Obsidian. In nomine Imperatoris.",
   "private": true,
   "main": "main.js",

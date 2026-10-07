@@ -12,8 +12,10 @@ import {
 } from "./vault";
 import { SEED_COMPANION_QUOTES } from "../seed/companionQuotes";
 import { DEFAULT_LANDMARKS } from "./landmarks";
-import { seedVault } from "./seed";
+import { seedVault, applyShippedPlan } from "./seed";
 import { SEED_EXERCISES } from "../seed/exercises";
+import { parseExerciseFile } from "./frontmatter";
+import { saveSession, loadAllSessions } from "./vault";
 import {
   SEED_PRO_EMPEROR_QUOTES,
   SEED_DISAVOWAL_QUOTES,
@@ -290,5 +292,116 @@ describe("the seeded push/pull/legs plan", () => {
         orders.length,
       );
     }
+  });
+});
+
+// ---------------------------------------------------------------------------
+// applyShippedPlan
+// ---------------------------------------------------------------------------
+//
+// The programme ships inside the plugin; the exercise FILES are vault notes.
+// When plugin code updates but note sync does not, the Ritual serves an old
+// workout. This is the reconciliation, and the thing it must never do is
+// cost the user a logged set.
+//
+// NL comes from fromCharCode rather than an escape: escape sequences in this
+// repo have been mangled by tooling more than once, and a silently broken
+// test file is worse than a slightly verbose one.
+
+const NL = String.fromCharCode(10);
+
+describe("applyShippedPlan", () => {
+  it("rewrites a stale definition to match the shipped plan", async () => {
+    const adapter = new InMemoryVaultAdapter();
+    await seedVault(adapter);
+
+    // A definition left behind by an older release: wrong day, wrong set
+    // target, wrong order, wrong muscles.
+    await adapter.writeFile(
+      "exercises/bench_press.md",
+      [
+        "---",
+        "id: bench_press",
+        "display_name: Bench Press",
+        "primary_muscles:",
+        "  - triceps",
+        "secondary_muscles: []",
+        "rotation_slots:",
+        "  - pull",
+        "order: 99",
+        "target_sets: 2",
+        "equipment: barbell",
+        "progression: double",
+        "bodyweight: false",
+        "---",
+        "",
+      ].join(NL),
+    );
+
+    const report = await applyShippedPlan(adapter);
+    expect(report.updated).toBeGreaterThan(0);
+
+    const shipped = SEED_EXERCISES.find((e) => e.id === "bench_press")!;
+    const onDisk = parseExerciseFile(
+      await adapter.readFile("exercises/bench_press.md"),
+    );
+    expect(onDisk.rotationSlots).toEqual(shipped.rotationSlots);
+    expect(onDisk.targetSets).toBe(shipped.targetSets);
+    expect(onDisk.order).toBe(shipped.order);
+    expect(onDisk.primaryMuscles).toEqual(shipped.primaryMuscles);
+    expect(onDisk.displayName).toBe(shipped.displayName);
+  });
+
+  it("is a no-op on a vault already matching the plan", async () => {
+    const adapter = new InMemoryVaultAdapter();
+    await seedVault(adapter);
+    const report = await applyShippedPlan(adapter);
+    expect(report.updated).toBe(0);
+    expect(report.created).toBe(0);
+    expect(report.unchanged).toBe(SEED_EXERCISES.length);
+  });
+
+  it("preserves a note the user wrote under the frontmatter", async () => {
+    const adapter = new InMemoryVaultAdapter();
+    await seedVault(adapter);
+    const raw = await adapter.readFile("exercises/deadlift.md");
+    const note = "Mind the lower back on the third set.";
+    await adapter.writeFile(
+      "exercises/deadlift.md",
+      raw.trimEnd() + NL + note + NL,
+    );
+
+    await applyShippedPlan(adapter);
+    expect(await adapter.readFile("exercises/deadlift.md")).toContain(note);
+  });
+
+  it("leaves logged sessions untouched", async () => {
+    const adapter = new InMemoryVaultAdapter();
+    await seedVault(adapter);
+    await saveSession(adapter, {
+      date: "2026-09-01",
+      rotationPosition: 0,
+      rotationSlot: "push",
+      isCardioWeek: false,
+      sleepHours: 8,
+      bodyweightKg: 80,
+      cardioMinutes: null,
+      cardioType: null,
+      cleanseType: null,
+      // Deliberately a lift that is NOT on the current plan: its history has
+      // to survive the reshuffle that dropped it.
+      exercises: [
+        { name: "tricep_pushdown", sets: [{ reps: 8, weightKg: 30 }] },
+      ],
+      notes: "",
+    });
+
+    await applyShippedPlan(adapter);
+
+    const [session] = await loadAllSessions(adapter);
+    expect(session.exercises[0].name).toBe("tricep_pushdown");
+    expect(session.exercises[0].sets).toEqual([{ reps: 8, weightKg: 30 }]);
+    // The definition it points at still exists, so volume still credits it.
+    expect(await adapter.exists("exercises/tricep_pushdown.md")).toBe(true);
   });
 });

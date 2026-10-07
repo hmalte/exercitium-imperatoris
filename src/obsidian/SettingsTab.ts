@@ -24,7 +24,7 @@ import {
   saveLoA,
   saveSession,
 } from "../domain/vault";
-import { seedVault } from "../domain/seed";
+import { seedVault, applyShippedPlan } from "../domain/seed";
 import type { Equipment, LoAFile, SessionFile } from "../domain/schemas";
 import {
   ROTATION_PRESET_IDS,
@@ -96,6 +96,7 @@ export class ExercitiumSettingsTab extends PluginSettingTab {
     this.renderRotationSection(containerEl);
     this.renderIncrementsSection(containerEl);
     this.renderLoASection(containerEl);
+    this.renderPlanSection(containerEl);
     this.renderCardioWeekSection(containerEl);
     this.renderReseedSection(containerEl);
     this.renderRegenerateBasesSection(containerEl);
@@ -256,6 +257,41 @@ export class ExercitiumSettingsTab extends PluginSettingTab {
           }
         }),
     );
+  }
+
+  // ---------------------------------------------------------------------
+  // Apply the shipped exercise plan
+  // ---------------------------------------------------------------------
+
+  private renderPlanSection(root: HTMLElement): void {
+    root.createEl("h3", { text: "Apply the shipped exercise plan" });
+    root.createEl("p", {
+      text:
+        "Rewrites every exercise definition to match the programme that ships " +
+        "with this version of the plugin — which day each lift belongs to, its " +
+        "running order, set target and muscle mapping. Use it when the plugin " +
+        "has updated but the workout has not. Your training history is not " +
+        "touched: sessions reference exercises by id, so every logged set stays " +
+        "attached. Notes you have written under an exercise are preserved.",
+      cls: "setting-item-description",
+    });
+
+    new Setting(root).addButton((btn) => {
+      btn.setButtonText("Apply plan");
+      btn.onClick(async () => {
+        try {
+          const adapter = new ObsidianVaultAdapter(this.plugin.app);
+          const r = await applyShippedPlan(adapter);
+          new Notice(
+            `Plan applied. ${r.updated} updated, ${r.created} added, ` +
+              `${r.unchanged} already current.`,
+            8000,
+          );
+        } catch (e) {
+          new Notice(`Failed to apply the plan: ${String(e)}`, 8000);
+        }
+      });
+    });
   }
 
   // ---------------------------------------------------------------------

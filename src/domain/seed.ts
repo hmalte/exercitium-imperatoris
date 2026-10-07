@@ -23,6 +23,7 @@ import {
 } from "./vault";
 import { DEFAULT_LANDMARKS } from "./landmarks";
 import { SEED_EXERCISES } from "../seed/exercises";
+import { serializeExerciseFile, splitFrontmatter } from "./frontmatter";
 import {
   SEED_PRO_EMPEROR_QUOTES,
   SEED_DISAVOWAL_QUOTES,
@@ -195,4 +196,77 @@ async function migrateCompanionQuotes(
 
   await adapter.writeFile(path, JSON.stringify(parsed, null, 2) + "\n");
   return true;
+}
+
+
+// -----------------------------------------------------------------------------
+// Apply the shipped plan
+// -----------------------------------------------------------------------------
+//
+// seedVault never overwrites an existing exercise file, which is right for
+// seeding and wrong for shipping a new programme. The plan lives in code and
+// reaches a device with the plugin; the exercise FILES are vault notes and
+// reach it only if note sync is working. When those two drift — new code,
+// old files — the Ritual offers yesterday's workout with no hint that
+// anything is stale.
+//
+// This closes the gap: it rewrites every exercise file's frontmatter from
+// SEED_EXERCISES, so updating the plugin is enough to update the programme.
+//
+// What it does NOT touch:
+//   - The note body. Anything written below the frontmatter is the user's,
+//     and is carried across verbatim.
+//   - Session files. Nothing here reads or writes training history, and
+//     because exercises are referenced by id, rewriting a definition leaves
+//     every logged set attached to it.
+//   - Exercise files with no entry in SEED_EXERCISES. A lift invented in the
+//     vault by hand is left exactly as it is.
+
+export type PlanReport = {
+  /** Files that did not exist and were written fresh. */
+  created: number;
+  /** Files whose frontmatter differed from the shipped plan and was replaced. */
+  updated: number;
+  /** Files already matching the shipped plan. */
+  unchanged: number;
+};
+
+export async function applyShippedPlan(
+  adapter: VaultAdapter,
+): Promise<PlanReport> {
+  await adapter.ensureFolder(DIRS.exercises);
+  const report: PlanReport = { created: 0, updated: 0, unchanged: 0 };
+
+  for (const ex of SEED_EXERCISES) {
+    const path = `${DIRS.exercises}/${ex.id}.md`;
+
+    if (!(await adapter.exists(path))) {
+      await saveExercise(adapter, ex);
+      report.created++;
+      continue;
+    }
+
+    const raw = await adapter.readFile(path);
+    // Preserve whatever the user has written under the frontmatter; fall
+    // back to the shipped note only when the body is empty.
+    const { body } = splitFrontmatter(raw);
+    const notes = body.trim() ? body : ex.notes;
+    const next = serializeExerciseFile({ ...ex, notes });
+
+    // Strip carriage returns before comparing: a vault file saved on
+    // Windows carries CRLF while serializeExerciseFile emits LF, so a
+    // naive comparison would report every file as updated on every run.
+    // Written via fromCharCode to keep an escape sequence out of the
+    // source, which has been mangled by tooling more than once.
+    const CR = String.fromCharCode(13);
+    if (raw.split(CR).join("") === next) {
+      report.unchanged++;
+      continue;
+    }
+
+    await adapter.writeFile(path, next);
+    report.updated++;
+  }
+
+  return report;
 }

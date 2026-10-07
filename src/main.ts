@@ -22,7 +22,7 @@ import { ObsidianVaultAdapter } from "./obsidian/ObsidianVaultAdapter";
 import { injectGlobalTheme, removeGlobalTheme } from "./obsidian/globalTheme";
 import { ExercitiumSettingsTab } from "./obsidian/SettingsTab";
 import { ChronicleModal } from "./obsidian/ChronicleModal";
-import { seedVault } from "./domain/seed";
+import { seedVault, applyShippedPlan } from "./domain/seed";
 import { loadAllSessions } from "./domain/vault";
 import { sessionsToCsv } from "./domain/csvExport";
 import type { DisplayUnit } from "./domain/units";
@@ -225,6 +225,31 @@ export default class ExercitiumPlugin extends Plugin {
       name: "Open the Codex Imperialis",
       callback: async () => {
         await this.activateCodex();
+      },
+    });
+
+    // Apply the shipped exercise plan.
+    //
+    // The programme lives in code and travels with the plugin; the exercise
+    // FILES are vault notes and travel only if note sync is working. When
+    // those drift apart the Ritual quietly serves an old workout. This is
+    // the manual reconciliation, and it is a command rather than something
+    // automatic so it never overwrites a hand-edited definition unasked.
+    this.addCommand({
+      id: "apply-shipped-plan",
+      name: "Apply the shipped exercise plan",
+      callback: async () => {
+        try {
+          const adapter = new ObsidianVaultAdapter(this.app);
+          const r = await applyShippedPlan(adapter);
+          new Notice(
+            `Plan applied. ${r.updated} updated, ${r.created} added, ` +
+              `${r.unchanged} already current. Training history untouched.`,
+            8000,
+          );
+        } catch (e) {
+          new Notice(`Failed to apply the plan: ${String(e)}`, 8000);
+        }
       },
     });
 
