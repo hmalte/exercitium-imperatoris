@@ -76,6 +76,9 @@ export class AltarView extends ItemView {
       onBeginCardio: () => {
         void this.plugin.openRitual("cardio_only");
       },
+      onBeginFreestyle: () => {
+        void this.plugin.openRitual("freestyle");
+      },
       reloadNonce: this.nonce,
     });
     if (this.mount) {

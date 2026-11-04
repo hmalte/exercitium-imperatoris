@@ -80,7 +80,7 @@ import {
 // ---------------------------------------------------------------------------
 
 /** How the Ritual view was launched. See RitualAppProps.mode. */
-export type RitualMode = "auto" | "cardio_only";
+export type RitualMode = "auto" | "cardio_only" | "freestyle";
 
 export type RitualAppProps = {
   adapter: VaultAdapter;
@@ -105,7 +105,13 @@ export type RitualAppProps = {
    *                  rotation's slot for today.
    *  "cardio_only" — the user tapped "The Lungs Alone" on the Altar. Skips
    *                  straight to the cardio session step; saves a lift-free
-   *                  session that does NOT advance the rotation. */
+   *                  session that does NOT advance the rotation.
+   *  "freestyle"   — training off-plan. The menu opens on the whole library
+   *                  instead of one day's list, and the saved session carries
+   *                  a null rotation position, so the day the rotation had
+   *                  queued up is still queued up afterwards. It counts for
+   *                  the streak and the weekly conditions like any other
+   *                  session, because it is one. */
   mode?: RitualMode;
   /** Bumped by the view when this leaf regains focus. Re-reads the exercise
    *  LIBRARY only — deliberately not the whole mount effect, which also
@@ -283,6 +289,14 @@ export function RitualApp({
           return;
         }
 
+        // Freestyle is off-plan by definition, so neither the rotation slot
+        // nor the deload prompt applies — go straight into the normal
+        // pre-workout flow.
+        if (mode === "freestyle") {
+          setStep("sleep");
+          return;
+        }
+
         // Draft recovery check. If an in-progress draft for TODAY is
         // sitting in localStorage, we don't pick an initial step
         // ourselves — we show a restore prompt and let the user decide.
@@ -374,10 +388,14 @@ export function RitualApp({
   // cardio step instead); narrow to RotationSlot before filtering so the
   // compile-time types of ExerciseFile.rotationSlots still check out.
   const menuExercises = useMemo(() => {
+    // Freestyle has no prescribed day, so the whole library IS the menu.
+    // loadAllExercises already sorts by order then id, so planned lifts
+    // surface first and the retired ones follow.
+    if (mode === "freestyle") return allExercises;
     if (slot === "cardio") return [];
     const strengthSlot: RotationSlot = slot;
     return allExercises.filter((e) => e.rotationSlots.includes(strengthSlot));
-  }, [allExercises, slot]);
+  }, [allExercises, slot, mode]);
 
   // -------------------------------------------------------------------------
   // Draft recovery: resume / abandon handlers
@@ -686,8 +704,12 @@ export function RitualApp({
     await commitSession(
       {
         date: today,
-        rotationPosition,
-        rotationSlot: slot,
+        // Freestyle writes a null position so nextRotationPosition skips
+        // it and the queued lift day survives. isCardioWeek stays false, so
+        // computeCurrentStreak counts the day like any other training day —
+        // which is the point of the mode.
+        rotationPosition: mode === "freestyle" ? null : rotationPosition,
+        rotationSlot: mode === "freestyle" ? "freestyle" : slot,
         isCardioWeek: false,
         sleepHours,
         bodyweightKg: weightKg,
@@ -983,7 +1005,11 @@ export function RitualApp({
   return (
     <div className="exercitium-ritual">
       <StepBackBar label={backLabel} hint={backHint} onBack={goBack} />
-      <SlotBanner slot={slot} position={rotationPosition} />
+      {mode === "freestyle" ? (
+        <FreestyleBanner />
+      ) : (
+        <SlotBanner slot={slot} position={rotationPosition} />
+      )}
       <ExerciseMenu
         exercises={menuExercises}
         library={allExercises}
@@ -1617,6 +1643,15 @@ function PrBanner({
       <div className="exercitium-pr-banner-body">
         New best: ~{formatWeight(e1rm, displayUnit)} estimated 1RM.
       </div>
+    </div>
+  );
+}
+
+function FreestyleBanner() {
+  return (
+    <div className="exercitium-banner">
+      <span className="exercitium-banner-slot">FREESTYLE</span>
+      <span className="exercitium-banner-position">the rotation holds</span>
     </div>
   );
 }

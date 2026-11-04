@@ -79,6 +79,10 @@ export type AltarAppProps = {
    *  The rotation does NOT advance, but the day still counts toward the
    *  weekly 3- and 5-session conditions. */
   onBeginCardio: () => void;
+  /** Called when the user taps "Freestyle" — training off-plan. Opens the
+   *  Ritual on the whole exercise library. The rotation does not advance,
+   *  but the day counts for the streak and the weekly conditions. */
+  onBeginFreestyle: () => void;
   /** Bumped by the view whenever this leaf regains focus. The Altar is what
    *  you land on after a Ritual, so without this it would keep showing the
    *  streak and weekly counts from before the session was saved. */
@@ -106,6 +110,7 @@ export function AltarApp({
   onDisplayUnitChange,
   onBeginRitual,
   onBeginCardio,
+  onBeginFreestyle,
   reloadNonce,
 }: AltarAppProps) {
   const [state, setState] = useState<LoadedState | null>(null);
@@ -467,15 +472,15 @@ export function AltarApp({
         <blockquote className="exercitium-altar-quote">"{quote}"</blockquote>
       )}
 
-      {/* Two entry points, and which one leads depends on the week.
-          Normally lifting is the point, so the Ritual gets the glowing
-          primary button. Inside a deload the Imperium is counselling rest,
-          so cardio leads and the Ritual drops to "Lift anyway" underneath.
+      {/* Three entry points. Which one leads depends on the week: normally
+          lifting is the point, so the Ritual gets the glowing primary
+          button; inside a deload the Imperium counsels rest, so cardio
+          leads and the Ritual drops to "Lift anyway" beneath it.
 
-          The cardio button used to be hidden outright during a deload, on
-          the theory that the whole week already was one. That was backwards
-          — a deload week is precisely when you want to log a march, and
-          hiding it left no way to record one at all. */}
+          Freestyle always sits last. It is the off-plan option — whole
+          library, no prescribed day — and it deliberately leaves the
+          rotation where it is, so the day you skipped is the day waiting
+          for you next time. It still counts for the streak. */}
       {(derived.pausedInCardio
         ? ["cardio", "ritual"]
         : ["ritual", "cardio"]
@@ -506,6 +511,13 @@ export function AltarApp({
           </button>
         ),
       )}
+
+      <button
+        className="exercitium-btn exercitium-btn-secondary exercitium-cardio-only-btn"
+        onClick={onBeginFreestyle}
+      >
+        Freestyle — train off the plan
+      </button>
 
       {/* Skip this rotation — only shown when not currently paused in an
           LoA or cardio window (those already pause the rotation). Writes

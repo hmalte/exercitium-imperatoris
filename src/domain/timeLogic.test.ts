@@ -33,6 +33,11 @@ function sess(date: string, pos: number): Session {
 function cardio(date: string): Session {
   return { date, isCardioWeek: true, rotationPosition: null };
 }
+// A freestyle session: trained off-plan, so no rotation position, but a
+// genuine training day and not a deload.
+function freestyle(date: string): Session {
+  return { date, isCardioWeek: false, rotationPosition: null };
+}
 // A standalone cardio session ("The Lungs Alone"): a real training day that
 // deliberately carries no rotation position, and — unlike a Cardio Week — is
 // not a deload.
@@ -407,6 +412,35 @@ describe("nextRotationPosition", () => {
 // distinguished only by `isCardioWeek`. That flag is load-bearing: it decides
 // whether the day resets the six-weekly deload counter and whether the Altar
 // declares the rotation asleep. These pin the distinction.
+
+describe("freestyle sessions", () => {
+  // The whole contract of the mode: it must not cost you the day the
+  // rotation had queued up, but it must still count as having trained.
+  it("does not advance the rotation", () => {
+    const sessions = [sess("2026-04-18", 1), freestyle("2026-04-19")];
+    expect(nextRotationPosition(sessions, 3)).toBe(2);
+  });
+
+  it("counts toward the streak like any other training day", () => {
+    // Three sessions in the window, one of them freestyle. At a threshold
+    // of 3 the streak holds only if the freestyle day is counted.
+    const sessions = [
+      sess("2026-04-15", 0),
+      freestyle("2026-04-17"),
+      sess("2026-04-19", 1),
+    ];
+    expect(isInStreakOn("2026-04-19", sessions, [])).toBe(true);
+
+    // Drop the freestyle day and the same window falls short.
+    expect(
+      isInStreakOn("2026-04-19", [sessions[0], sessions[2]], []),
+    ).toBe(false);
+  });
+
+  it("is not treated as a deload", () => {
+    expect(deriveCardioWeekRanges([freestyle("2026-04-19")])).toEqual([]);
+  });
+});
 
 describe("standalone cardio is not a deload", () => {
   it("does not create a cardio-week range", () => {

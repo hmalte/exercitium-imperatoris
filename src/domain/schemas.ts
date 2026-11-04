@@ -128,7 +128,11 @@ export type SessionExercise = {
 export type SessionFile = {
   date: ISODate;
   rotationPosition: number | null; // null during cardio week
-  rotationSlot: RotationSlot | "cardio";
+  /** Which kind of day this was. A rotation slot for planned training;
+   *  "cardio" for a lung-only session; "freestyle" for a session picked
+   *  from the whole library. The latter two carry a null rotationPosition,
+   *  so neither advances the rotation. */
+  rotationSlot: RotationSlot | "cardio" | "freestyle";
   isCardioWeek: boolean;
   sleepHours: number | null;
   /** User's bodyweight on this session, in kg. Optional, rolls forward

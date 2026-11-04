@@ -319,19 +319,6 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     bodyweight: true,
     notes: "",
   },
-  {
-    id: "pallof_press",
-    displayName: "Pallof Press",
-    primaryMuscles: ["obliques"],
-    secondaryMuscles: ["abs"],
-    rotationSlots: [],
-    order: DEFAULT_EXERCISE_ORDER,
-    targetSets: SETS_3,
-    equipment: "cable",
-    progression: "double",
-    bodyweight: false,
-    notes: "Anti-rotation. Log one set per side.",
-  },
 
   {
     id: "situps",
@@ -344,6 +331,37 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     equipment: "bodyweight",
     progression: "double",
     bodyweight: true,
+    notes: "",
+  },
+
+  {
+    id: "pec_fly_machine",
+    displayName: "Pec Fly Machine",
+    // Distinct from the existing cable_fly: fixed path, seated, and it
+    // isolates harder because the machine takes the stabilising work.
+    primaryMuscles: ["chest"],
+    secondaryMuscles: ["front_delts"],
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
+    targetSets: SETS_4,
+    equipment: "machine",
+    progression: "double",
+    bodyweight: false,
+    notes: "",
+  },
+  {
+    id: "cable_lateral_raise",
+    displayName: "Cable Lateral Raise",
+    // Constant tension through the whole arc, unlike the dumbbell version
+    // where the bottom third is nearly free.
+    primaryMuscles: ["side_delts"],
+    secondaryMuscles: [],
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
+    targetSets: SETS_4,
+    equipment: "cable",
+    progression: "double",
+    bodyweight: false,
     notes: "",
   },
 

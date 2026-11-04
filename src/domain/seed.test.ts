@@ -51,9 +51,9 @@ describe("seedVault — first run", () => {
     expect(await loadVolumeLandmarks(adapter)).toEqual(DEFAULT_LANDMARKS);
   });
 
-  it("seeds exactly 50 pro-Emperor and 50 disavowal quotes", () => {
-    expect(SEED_PRO_EMPEROR_QUOTES).toHaveLength(50);
-    expect(SEED_DISAVOWAL_QUOTES).toHaveLength(50);
+  it("seeds exactly 25 pro-Emperor and 25 disavowal quotes", () => {
+    expect(SEED_PRO_EMPEROR_QUOTES).toHaveLength(25);
+    expect(SEED_DISAVOWAL_QUOTES).toHaveLength(25);
   });
 });
 
@@ -229,6 +229,34 @@ describe("the seeded push/pull/legs plan", () => {
 
   // Muscle mapping is the part most easily got wrong on a reshuffle, and
   // wrong mappings quietly corrupt every volume readout in the Sanctum.
+  it("drops pallof press from the library entirely", async () => {
+    // Removed on request. Distinct from the retired lifts above, which keep
+    // their files: this one is gone, so the single set logged against it on
+    // 2026-08-17 no longer carries volume credit.
+    const adapter = new InMemoryVaultAdapter();
+    await seedVault(adapter);
+    const ids = new Set((await loadAllExercises(adapter)).map((e) => e.id));
+    expect(ids.has("pallof_press")).toBe(false);
+  });
+
+  it("carries the two added library movements", async () => {
+    const adapter = new InMemoryVaultAdapter();
+    await seedVault(adapter);
+    const byId = new Map((await loadAllExercises(adapter)).map((e) => [e.id, e]));
+
+    const pec = byId.get("pec_fly_machine")!;
+    expect(pec.primaryMuscles).toEqual(["chest"]);
+    expect(pec.equipment).toBe("machine");
+
+    const cable = byId.get("cable_lateral_raise")!;
+    expect(cable.primaryMuscles).toEqual(["side_delts"]);
+    expect(cable.equipment).toBe("cable");
+
+    // Both are library-only: reachable from "Other exercise", not on a day.
+    expect(pec.rotationSlots).toEqual([]);
+    expect(cable.rotationSlots).toEqual([]);
+  });
+
   it("maps the movements that differ from their obvious cousins", async () => {
     const adapter = new InMemoryVaultAdapter();
     await seedVault(adapter);
@@ -263,7 +291,6 @@ describe("the seeded push/pull/legs plan", () => {
       "cable_fly",
       "back_squat",
       "hanging_leg_raise",
-      "pallof_press",
       "situps",
       // Dropped in the latest reshuffle — every one of these carries logged
       // sets, so the files must survive even though no day offers them.
