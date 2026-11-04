@@ -421,6 +421,29 @@ describe("freestyle sessions", () => {
     expect(nextRotationPosition(sessions, 3)).toBe(2);
   });
 
+  // Freestyle is COUNTED, not REQUIRED. Three planned days hold the streak
+  // on their own; the mode adds a way to qualify, never an obligation.
+  // Spelled out because the control case below reads like the opposite at
+  // a glance: it removes the freestyle day from a three-session week,
+  // leaving two, and two was never enough whatever the sessions were.
+  it("is not required — three planned days hold the streak alone", () => {
+    const sessions = [
+      sess("2026-04-15", 0),
+      sess("2026-04-17", 1),
+      sess("2026-04-19", 2),
+    ];
+    expect(isInStreakOn("2026-04-19", sessions, [])).toBe(true);
+  });
+
+  it("a week of nothing but freestyle also holds the streak", () => {
+    const sessions = [
+      freestyle("2026-04-15"),
+      freestyle("2026-04-17"),
+      freestyle("2026-04-19"),
+    ];
+    expect(isInStreakOn("2026-04-19", sessions, [])).toBe(true);
+  });
+
   it("counts toward the streak like any other training day", () => {
     // Three sessions in the window, one of them freestyle. At a threshold
     // of 3 the streak holds only if the freestyle day is counted.
@@ -431,7 +454,9 @@ describe("freestyle sessions", () => {
     ];
     expect(isInStreakOn("2026-04-19", sessions, [])).toBe(true);
 
-    // Drop the freestyle day and the same window falls short.
+    // Dropping the freestyle day leaves TWO sessions, and two is short of
+    // the threshold regardless of type — this shows the day was counted,
+    // not that freestyle is mandatory.
     expect(
       isInStreakOn("2026-04-19", [sessions[0], sessions[2]], []),
     ).toBe(false);
