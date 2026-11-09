@@ -23,8 +23,12 @@ describe("ROTATION_PRESETS", () => {
     }
   });
 
-  it("has astartes = 3-day push/pull/legs", () => {
-    expect(ROTATION_PRESETS.astartes.order).toEqual(["push", "pull", "legs"]);
+  it("has astartes = bench / deadlift / press", () => {
+    expect(ROTATION_PRESETS.astartes.order).toEqual([
+      "bench",
+      "deadlift",
+      "press",
+    ]);
   });
 
   it("declares astartes as the default", () => {

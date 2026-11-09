@@ -22,12 +22,21 @@ import type { ISODate } from "./timeLogic";
 // to add a muscle or slot, we add it here and TypeScript will tell us every
 // place that needs updating.
 
-// The rotation is push/pull/legs, full stop. "upper" and "lower" existed for
-// the old 5-day split and were removed when the plan became a 3-day rotation
-// — leaving them in meant an exercise could be tagged for a day that would
-// never come up. Lifts that used to live on those days now carry no slot and
-// are reached through the Ritual's "Other exercise" picker.
-export const ROTATION_SLOTS = ["push", "pull", "legs"] as const;
+// The three days, each named for the barbell lift that anchors it.
+//
+// Renamed from push/pull/legs when the plan moved to one fixed compound plus
+// deficit-chosen accessories: a day is no longer a movement pattern, it is a
+// main lift and whatever your weakest muscle groups need that session.
+//
+// ONLY the three compounds carry a slot now. Every accessory is slotless and
+// reaches the Ritual through the deficit picker instead, which is why the
+// library can grow without anyone deciding which day a lift "belongs" to.
+//
+// Session files written before the rename still say push/pull/legs on disk.
+// Nothing reads rotationSlot to compute anything — volume keys off exercise
+// ids, the streak off dates, the rotation off rotationPosition — so those
+// files stay valid history and simply carry their old label.
+export const ROTATION_SLOTS = ["bench", "deadlift", "press"] as const;
 export type RotationSlot = (typeof ROTATION_SLOTS)[number];
 
 // Widened slot used only in the persisted rotation ORDER. A rotation preset

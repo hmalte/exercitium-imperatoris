@@ -65,6 +65,17 @@ import {
   type RitualDraft,
 } from "../domain/sessionDraft";
 import { suggestNext } from "../domain/progression";
+import {
+  rankGroupDeficits,
+  remediesFor,
+  type GroupDeficit,
+} from "../domain/deficits";
+import {
+  DEFAULT_LANDMARKS,
+  type Landmarks,
+  type MuscleGroup,
+} from "../domain/landmarks";
+import { loadVolumeLandmarks } from "../domain/vault";
 import { bestEpleyForExercise, epleyOneRepMax } from "../domain/stats";
 import { lastRecordedBodyweight } from "../domain/volume";
 import {
@@ -247,6 +258,14 @@ export function RitualApp({
   // the rest of the form from this and clear it; if they abandon, we
   // clear the stored copy and null this out.
   const [pendingDraft, setPendingDraft] = useState<RitualDraft | null>(null);
+  /** The user's volume landmarks, driving the accessory picker's ranking.
+   *  Starts on the shipped defaults so the first render already has a
+   *  sensible board if the vault read is slow. */
+  const [landmarks, setLandmarks] =
+    useState<Record<MuscleGroup, Landmarks>>(DEFAULT_LANDMARKS);
+  /** How many accessory slots the picker offers. Three by default; the
+   *  user can open a fourth when they have it in them. */
+  const [accessorySlots, setAccessorySlots] = useState(3);
   /** True when today falls inside an active deload week. Changes what the
    *  cardio-choice screen says and where accepting it leads: a deload day
    *  logs a march via "The Lungs Alone", not another cardio-week marker. */
@@ -261,7 +280,15 @@ export function RitualApp({
     let cancelled = false;
     (async () => {
       try {
-        const [loadedSessions, exercises, loas, proQuotes, disQuotes, companion] =
+        const [
+          loadedSessions,
+          exercises,
+          loas,
+          proQuotes,
+          disQuotes,
+          companion,
+          loadedLandmarks,
+        ] =
           await Promise.all([
             loadAllSessions(adapter),
             loadAllExercises(adapter),
@@ -269,6 +296,7 @@ export function RitualApp({
             loadQuotes(adapter, "pro_emperor"),
             loadQuotes(adapter, "disavowal"),
             loadCompanionQuotes(adapter),
+            loadVolumeLandmarks(adapter),
           ]);
         if (cancelled) return;
         setSessions(loadedSessions);
@@ -276,6 +304,7 @@ export function RitualApp({
         setProEmperorQuotes(proQuotes);
         setDisavowalQuotes(disQuotes);
         setCompanionQuotes(companion);
+        setLandmarks(loadedLandmarks);
         const pos = nextRotationPosition(loadedSessions, rotationOrder.length);
         setRotationPosition(pos);
 
@@ -396,6 +425,21 @@ export function RitualApp({
     const strengthSlot: RotationSlot = slot;
     return allExercises.filter((e) => e.rotationSlots.includes(strengthSlot));
   }, [allExercises, slot, mode]);
+
+  // Muscle groups ranked by how far they sit below MAV. Recomputed from the
+  // sessions loaded at mount, so it reflects everything up to today but not
+  // the sets being logged right now — deliberately: a board that reshuffled
+  // under your thumb mid-session would be unusable.
+  const deficits = useMemo(
+    () => rankGroupDeficits(sessions, allExercises, landmarks, today),
+    [sessions, allExercises, landmarks, today],
+  );
+
+  // The picker hides during a deload — `inDeload` is already tracked above
+  // for the cardio-choice screen, and it answers the same question. The
+  // deficits are frozen rather than growing (the window skips rest days),
+  // and a wall of debts during the week the plan told you to rest is
+  // nagging rather than guidance.
 
   // -------------------------------------------------------------------------
   // Draft recovery: resume / abandon handlers
@@ -1016,6 +1060,22 @@ export function RitualApp({
         onPick={addExercise}
         picked={new Set(workingExercises.map((w) => w.exerciseId))}
       />
+
+      {/* Accessories. The day's barbell anchor is above; what follows is
+          chosen by volume debt rather than prescribed. Suppressed in
+          freestyle (the whole library is already the menu) and during a
+          deload. */}
+      {mode !== "freestyle" && !inDeload && (
+        <AccessoryPicker
+          deficits={deficits}
+          library={allExercises}
+          slots={accessorySlots}
+          onAddSlot={() => setAccessorySlots((n) => n + 1)}
+          onPick={addExercise}
+          picked={new Set(workingExercises.map((w) => w.exerciseId))}
+          chosenCount={workingExercises.length}
+        />
+      )}
       {workingExercises.map((w) => (
         <SetLogger
           key={w.exerciseId}
@@ -1904,6 +1964,142 @@ function ExerciseMenu({
       )}
     </>
   );
+}
+
+// The accessory picker: muscle groups ranked by volume debt, each opening
+// into the lifts that train it as a primary mover.
+//
+// Groups lead, exercises follow. Leading with exercises would be a longer
+// list answering a question the user has not asked yet — the decision is
+// "what does my body owe", and only then "with what".
+//
+// Nothing here is enforced. The slot count is a nudge, the ranking is a
+// suggestion, and "Other exercise" above remains the escape hatch for a
+// session that simply wants something else.
+function AccessoryPicker({
+  deficits,
+  library,
+  slots,
+  onAddSlot,
+  onPick,
+  picked,
+  chosenCount,
+}: {
+  deficits: GroupDeficit[];
+  library: ExerciseFile[];
+  /** Accessory slots on offer. Starts at three. */
+  slots: number;
+  onAddSlot: () => void;
+  onPick: (ex: ExerciseFile) => void;
+  picked: Set<string>;
+  /** Exercises already added this session, anchor included. */
+  chosenCount: number;
+}) {
+  const [openGroup, setOpenGroup] = useState<MuscleGroup | null>(null);
+
+  // Only groups still short of MAV are worth offering. Capped at a readable
+  // number: the point is the worst few, not a full audit — the Sanctum is
+  // there for the whole picture.
+  const behind = deficits.filter((d) => d.toMav > 0).slice(0, 8);
+  if (behind.length === 0) {
+    return (
+      <p className="exercitium-subtitle">
+        Every muscle group is at or above MAV for the week. Add what you like.
+      </p>
+    );
+  }
+
+  // The anchor counts as one of the session's exercises, so accessories
+  // filled is everything beyond it.
+  const filled = Math.max(0, chosenCount - 1);
+
+  return (
+    <div className="exercitium-deficit">
+      <div className="exercitium-deficit-head">
+        <span>What the flesh lacks</span>
+        <span className="exercitium-deficit-count">
+          {filled}/{slots} accessories
+        </span>
+      </div>
+
+      {behind.map((d) => {
+        const open = openGroup === d.group;
+        const remedies = open ? remediesFor(d.group, library) : [];
+        return (
+          <div key={d.group}>
+            <button
+              type="button"
+              className={
+                "exercitium-deficit-group" +
+                (d.underMev ? " exercitium-deficit-group-urgent" : "")
+              }
+              aria-expanded={open}
+              onClick={() => setOpenGroup(open ? null : d.group)}
+            >
+              <span className="exercitium-deficit-name">
+                {prettyGroup(d.group)}
+              </span>
+              <span className="exercitium-deficit-gap">
+                {d.weeklySets} / {d.mav}
+                {d.underMev ? " · under MEV" : ""}
+              </span>
+            </button>
+
+            {open && (
+              <div className="exercitium-menu exercitium-deficit-remedies">
+                {remedies.length === 0 ? (
+                  <p className="exercitium-subtitle">
+                    Nothing in the library trains this as a primary mover.
+                  </p>
+                ) : (
+                  remedies.map((ex) => {
+                    const already = picked.has(ex.id);
+                    return (
+                      <button
+                        key={ex.id}
+                        className={
+                          "exercitium-menu-item" +
+                          (already ? " exercitium-menu-item-picked" : "")
+                        }
+                        disabled={already}
+                        onClick={() => {
+                          onPick(ex);
+                          setOpenGroup(null);
+                        }}
+                      >
+                        {ex.displayName}
+                        {ex.bodyweight ? " · BW" : ""}
+                      </button>
+                    );
+                  })
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {filled >= slots && (
+        <button
+          type="button"
+          className="exercitium-other-toggle"
+          onClick={onAddSlot}
+        >
+          + one more accessory
+        </button>
+      )}
+    </div>
+  );
+}
+
+// "rear_delts" → "Rear Delts". Local to the picker rather than shared with
+// the Sanctum's copy: the two could reasonably diverge, and a tiny repeated
+// formatter is cheaper than a dependency between unrelated views.
+function prettyGroup(group: MuscleGroup): string {
+  return group
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 }
 
 function SetLogger({

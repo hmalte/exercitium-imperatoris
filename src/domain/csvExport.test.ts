@@ -17,7 +17,7 @@ function makeSession(overrides: Partial<SessionFile>): SessionFile {
   return {
     date: "2026-01-01",
     rotationPosition: 1,
-    rotationSlot: "push",
+    rotationSlot: "bench",
     isCardioWeek: false,
     sleepHours: 8,
     bodyweightKg: 80,

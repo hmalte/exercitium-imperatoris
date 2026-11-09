@@ -33,7 +33,7 @@ function session(
   return {
     date: overrides.date,
     rotationPosition: overrides.rotationPosition ?? 0,
-    rotationSlot: overrides.rotationSlot ?? "push",
+    rotationSlot: overrides.rotationSlot ?? "bench",
     isCardioWeek: overrides.isCardioWeek ?? false,
     sleepHours: overrides.sleepHours ?? null,
     bodyweightKg: overrides.bodyweightKg ?? null,
@@ -57,7 +57,7 @@ function ex(
     displayName: id,
     primaryMuscles: primary,
     secondaryMuscles: secondary,
-    rotationSlots: ["push"],
+    rotationSlots: ["bench"],
     order: 1,
     targetSets: 4,
     equipment: "barbell",

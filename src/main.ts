@@ -77,10 +77,16 @@ export const DEFAULT_ROTATION_ORDER: RotationOrderSlot[] = [
 export const DEFAULT_INCREMENTS_KG: Record<Equipment, number> = {
   barbell: 2.5,
   dumbbell: 2.5,
-  machine: 5,
+  // Was 5. Machine stacks often pin at 5 kg, but the jump is too coarse on
+  // the smaller movements, so the suggestion now proposes 2.5 and leaves it
+  // to the user to round up where the stack forces it.
+  machine: 2.5,
   cable: 2.5,
   bodyweight: 0,
-  kettlebell: 4,
+  // Nothing in the library uses kettlebells any more. The equipment kind
+  // stays in the union so a hand-written exercise file naming it still
+  // parses; this value is simply never consulted.
+  kettlebell: 2.5,
 };
 
 const DEFAULT_SETTINGS: ExercitiumSettings = {

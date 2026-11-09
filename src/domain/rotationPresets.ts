@@ -41,8 +41,8 @@ export const ROTATION_PRESETS: Record<RotationPresetId, RotationPreset> = {
     id: "astartes",
     name: "Astartes Triptych",
     description:
-      "Three days — push, pull, legs. The rite in its whole and proper form.",
-    order: ["push", "pull", "legs"],
+      "Three days — bench, deadlift, press. One great lift each, and the rest decided by what the flesh lacks.",
+    order: ["bench", "deadlift", "press"],
   },
 };
 

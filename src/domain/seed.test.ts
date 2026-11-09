@@ -21,6 +21,7 @@ import {
   SEED_DISAVOWAL_QUOTES,
 } from "../seed/quotes";
 import { SEED_BASE_FILES } from "../seed/bases";
+import { MUSCLE_TO_GROUP } from "./landmarks";
 
 describe("seedVault — first run", () => {
   it("writes all 41 exercises and both quote files", async () => {
@@ -185,115 +186,65 @@ describe("seedVault — companion quote backfill", () => {
 // intentionally brittle: the whole point of `order` is that the Ritual menu
 // reads as the workout, so a silent reshuffle should fail loudly here.
 
-describe("the seeded push/pull/legs plan", () => {
-  // Mirrors the Ritual's menu query: filter by slot, then take load order.
-  async function day(slot: "push" | "pull" | "legs") {
+describe("the seeded plan", () => {
+  async function library() {
     const adapter = new InMemoryVaultAdapter();
     await seedVault(adapter);
-    const all = await loadAllExercises(adapter);
-    return all.filter((e) => e.rotationSlots.includes(slot));
+    return loadAllExercises(adapter);
+  }
+  async function day(slot: "bench" | "deadlift" | "press") {
+    return (await library()).filter((e) => e.rotationSlots.includes(slot));
   }
 
-  it("orders the push day as prescribed", async () => {
-    const push = await day("push");
-    expect(push.map((e) => e.displayName)).toEqual([
+  // One barbell anchor per day and nothing else. Accessories are reached
+  // through the deficit picker, which is exactly why they carry no slot:
+  // nobody has to decide in advance which day a lateral raise belongs to.
+  it("gives each day exactly one anchor", async () => {
+    expect((await day("bench")).map((e) => e.displayName)).toEqual([
       "Barbell Bench Press",
-      "Standing Overhead Press",
-      "Incline Dumbbell Press",
-      "Dumbbell Lateral Raise",
     ]);
-    expect(push.map((e) => e.targetSets)).toEqual([4, 4, 4, 4]);
-  });
-
-  it("orders the pull day as prescribed", async () => {
-    const pull = await day("pull");
-    expect(pull.map((e) => e.displayName)).toEqual([
-      "Chin-ups",
-      "Barbell Row",
-      "Dumbbell Curls",
-      "Dumbbell Rear Delt Fly",
-    ]);
-    expect(pull.map((e) => e.targetSets)).toEqual([4, 4, 4, 4]);
-  });
-
-  it("orders the legs day as prescribed", async () => {
-    const legs = await day("legs");
-    expect(legs.map((e) => e.displayName)).toEqual([
-      "Leg Press (Feet High)",
+    expect((await day("deadlift")).map((e) => e.displayName)).toEqual([
       "Deadlift",
-      "Leg Extension",
-      "Leg Curl",
     ]);
-    expect(legs.map((e) => e.targetSets)).toEqual([4, 4, 4, 4]);
+    expect((await day("press")).map((e) => e.displayName)).toEqual([
+      "Standing Overhead Press",
+    ]);
   });
 
-  // Muscle mapping is the part most easily got wrong on a reshuffle, and
-  // wrong mappings quietly corrupt every volume readout in the Sanctum.
-  it("drops pallof press from the library entirely", async () => {
-    // Removed on request. Distinct from the retired lifts above, which keep
-    // their files: this one is gone, so the single set logged against it on
-    // 2026-08-17 no longer carries volume credit.
-    const adapter = new InMemoryVaultAdapter();
-    await seedVault(adapter);
-    const ids = new Set((await loadAllExercises(adapter)).map((e) => e.id));
-    expect(ids.has("pallof_press")).toBe(false);
+  it("prescribes four sets for everything", async () => {
+    const odd = (await library()).filter((e) => e.targetSets !== 4);
+    expect(odd.map((e) => e.id)).toEqual([]);
   });
 
-  it("carries the two added library movements", async () => {
-    const adapter = new InMemoryVaultAdapter();
-    await seedVault(adapter);
-    const byId = new Map((await loadAllExercises(adapter)).map((e) => [e.id, e]));
-
-    const pec = byId.get("pec_fly_machine")!;
-    expect(pec.primaryMuscles).toEqual(["chest"]);
-    expect(pec.equipment).toBe("machine");
-
-    const cable = byId.get("cable_lateral_raise")!;
-    expect(cable.primaryMuscles).toEqual(["side_delts"]);
-    expect(cable.equipment).toBe("cable");
-
-    // Both are library-only: reachable from "Other exercise", not on a day.
-    expect(pec.rotationSlots).toEqual([]);
-    expect(cable.rotationSlots).toEqual([]);
+  it("leaves every non-anchor lift slotless", async () => {
+    const slotted = (await library())
+      .filter((e) => e.rotationSlots.length > 0)
+      .map((e) => e.id)
+      .sort();
+    expect(slotted).toEqual(["bench_press", "deadlift", "overhead_press"]);
   });
 
-  it("maps the movements that differ from their obvious cousins", async () => {
-    const adapter = new InMemoryVaultAdapter();
-    await seedVault(adapter);
-    const byId = new Map((await loadAllExercises(adapter)).map((e) => [e.id, e]));
-
-    // Chin-ups are supinated, so the biceps are a prime mover. The pull-up
-    // keeps its own file with biceps merely secondary.
-    expect(byId.get("chinup")!.primaryMuscles).toEqual(["lats", "biceps"]);
-    expect(byId.get("pullup")!.primaryMuscles).toEqual(["lats"]);
-
-    // Feet high moves the work up the chain toward hip extension.
-    expect(byId.get("leg_press")!.primaryMuscles).toEqual(["glutes", "quads"]);
-    expect(byId.get("leg_press")!.secondaryMuscles).toEqual(["hamstrings"]);
-
-    // Standing press braces through the trunk; seated would not.
-    expect(byId.get("overhead_press")!.secondaryMuscles).toContain("abs");
-
-    // The bent-over hold loads the erectors for the whole set.
-    expect(byId.get("barbell_row")!.secondaryMuscles).toContain("lower_back");
-  });
-
-  it("keeps retired lifts as files but off every planned day", async () => {
-    const adapter = new InMemoryVaultAdapter();
-    await seedVault(adapter);
-    const all = await loadAllExercises(adapter);
-    const byId = new Map(all.map((e) => [e.id, e]));
-
-    for (const id of [
-      // Never on the current plan.
-      "front_squat",
-      "standing_calf_raise",
-      "cable_fly",
-      "back_squat",
+  it("drops the movements removed on request", async () => {
+    const ids = new Set((await library()).map((e) => e.id));
+    for (const gone of [
+      "pallof_press",
       "hanging_leg_raise",
-      "situps",
-      // Dropped in the latest reshuffle — every one of these carries logged
-      // sets, so the files must survive even though no day offers them.
+      "plank",
+      "russian_twist",
+      "bulgarian_split_squat",
+      "front_squat",
+      "barbell_shrug",
+      "kettlebell_swing",
+    ]) {
+      expect(ids.has(gone), `${gone} should be gone`).toBe(false);
+    }
+  });
+
+  it("keeps every lift that carries logged sets", async () => {
+    // These were dropped from a DAY, not from the library. Their history
+    // still has to resolve or the Sanctum silently loses that volume.
+    const ids = new Set((await library()).map((e) => e.id));
+    for (const kept of [
       "dips",
       "tricep_pushdown",
       "db_wrist_curl",
@@ -303,22 +254,46 @@ describe("the seeded push/pull/legs plan", () => {
       "face_pull",
       "cable_curl",
       "pullup",
+      "lateral_raise",
+      "leg_press",
+      "leg_curl",
+      "leg_extension",
+      "chinup",
+      "barbell_row",
+      "seated_curl",
+      "rear_delt_fly",
+      "incline_db_press",
     ]) {
-      const ex = byId.get(id);
-      // The file still exists — history and volume credit are intact…
-      expect(ex, `${id} should still be seeded`).toBeDefined();
-      // …it just isn't offered on any day.
-      expect(ex!.rotationSlots).toEqual([]);
+      expect(ids.has(kept), `${kept} should still be seeded`).toBe(true);
     }
   });
 
-  it("gives every planned lift a distinct position within its day", async () => {
-    for (const slot of ["push", "pull", "legs"] as const) {
-      const orders = (await day(slot)).map((e) => e.order);
-      expect(new Set(orders).size, `${slot} has duplicate order values`).toBe(
-        orders.length,
-      );
-    }
+  // The picker is useless for a group with nothing to offer. Every group
+  // the landmarks know about needs at least one primary-mover remedy.
+  it("gives every muscle group at least one primary-mover option", async () => {
+    const lib = await library();
+    const covered = new Set<string>();
+    for (const e of lib)
+      for (const mu of e.primaryMuscles) covered.add(MUSCLE_TO_GROUP[mu]);
+    const uncovered = Object.keys(DEFAULT_LANDMARKS).filter(
+      (g) => !covered.has(g),
+    );
+    expect(uncovered).toEqual([]);
+  });
+
+  it("no longer relies on a single lift for the lower back", async () => {
+    const lib = await library();
+    const lowerBack = lib.filter((e) =>
+      e.primaryMuscles.some((mu) => MUSCLE_TO_GROUP[mu] === "lower_back"),
+    );
+    // Was just the deadlift, which is unreachable as an accessory on the
+    // two days it does not anchor.
+    expect(lowerBack.length).toBeGreaterThan(1);
+  });
+
+  it("has no kettlebell movements left", async () => {
+    const lib = await library();
+    expect(lib.filter((e) => e.equipment === "kettlebell")).toEqual([]);
   });
 });
 
@@ -354,7 +329,7 @@ describe("applyShippedPlan", () => {
         "  - triceps",
         "secondary_muscles: []",
         "rotation_slots:",
-        "  - pull",
+        "  - deadlift",
         "order: 99",
         "target_sets: 2",
         "equipment: barbell",
@@ -408,7 +383,7 @@ describe("applyShippedPlan", () => {
     await saveSession(adapter, {
       date: "2026-09-01",
       rotationPosition: 0,
-      rotationSlot: "push",
+      rotationSlot: "bench",
       isCardioWeek: false,
       sleepHours: 8,
       bodyweightKg: 80,

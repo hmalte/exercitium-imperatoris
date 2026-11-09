@@ -15,7 +15,7 @@ function makeSession(
   return {
     date,
     rotationPosition: 0,
-    rotationSlot: "push",
+    rotationSlot: "bench",
     isCardioWeek: false,
     sleepHours: null,
     bodyweightKg: null,
@@ -93,7 +93,7 @@ describe("suggestNext", () => {
       {
         date: "2026-04-15",
         rotationPosition: 1,
-        rotationSlot: "pull",
+        rotationSlot: "deadlift",
         isCardioWeek: false,
         sleepHours: null,
         bodyweightKg: null,

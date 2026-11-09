@@ -17,7 +17,7 @@ import type { SessionFile, ExerciseFile, LoAFile } from "./schemas";
 const sampleSession: SessionFile = {
   date: "2026-04-19",
   rotationPosition: 3,
-  rotationSlot: "push",
+  rotationSlot: "bench",
   isCardioWeek: false,
   sleepHours: 7.5,
   bodyweightKg: 72,
@@ -35,7 +35,7 @@ const sampleExercise: ExerciseFile = {
   displayName: "Bench Press",
   primaryMuscles: ["chest"],
   secondaryMuscles: ["triceps"],
-  rotationSlots: ["push"],
+  rotationSlots: ["bench"],
   order: 1,
   targetSets: 4,
   equipment: "barbell",

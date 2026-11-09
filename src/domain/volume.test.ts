@@ -24,7 +24,7 @@ function exercise(
     displayName: id,
     primaryMuscles: primary,
     secondaryMuscles: secondary,
-    rotationSlots: ["push"],
+    rotationSlots: ["bench"],
     order: 1,
     targetSets: 4,
     equipment: bodyweight ? "bodyweight" : "barbell",
@@ -43,7 +43,7 @@ function session(
   return {
     date,
     rotationPosition: 0,
-    rotationSlot: "push",
+    rotationSlot: "bench",
     isCardioWeek: false,
     sleepHours: null,
     bodyweightKg,

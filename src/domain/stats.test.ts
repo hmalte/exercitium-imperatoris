@@ -27,7 +27,7 @@ function session(
   return {
     date: overrides.date,
     rotationPosition: overrides.rotationPosition ?? 0,
-    rotationSlot: overrides.rotationSlot ?? "push",
+    rotationSlot: overrides.rotationSlot ?? "bench",
     isCardioWeek: overrides.isCardioWeek ?? false,
     sleepHours: overrides.sleepHours ?? null,
     bodyweightKg: overrides.bodyweightKg ?? null,

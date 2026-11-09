@@ -1867,3 +1867,71 @@ body.exercitium-active .workspace-leaf.mod-active .workspace-leaf-content {
   font-style: italic;
   color: #b0a890;
 }
+
+/* ------------------------------------------------- Accessory deficit picker
+   Muscle groups ranked by volume debt. Visually quieter than the day's
+   anchor above it — the anchor is prescribed, this is a considered choice —
+   but louder than the "Other exercise" escape hatch below. */
+.exercitium-deficit {
+  margin-top: 0.75rem;
+  border: 1px solid #35302a;
+  padding: 0.6rem;
+}
+
+.exercitium-deficit-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  font-size: 0.7rem;
+  letter-spacing: var(--ex-tracking-md);
+  text-transform: uppercase;
+  color: #b0a890;
+  margin-bottom: 0.5rem;
+}
+
+.exercitium-deficit-count {
+  font-family: var(--ex-font-numeral);
+  color: #c9b57a;
+}
+
+.exercitium-deficit-group {
+  display: flex;
+  width: 100%;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding: 0.55rem 0.5rem;
+  margin-bottom: 0.25rem;
+  background: transparent;
+  border: 1px solid #35302a;
+  color: var(--ex-on-surface);
+  cursor: pointer;
+  text-align: left;
+}
+
+.exercitium-deficit-group:hover {
+  border-color: #8a6f2a;
+}
+
+/* Below the maintenance floor, not merely short of MAV. */
+.exercitium-deficit-group-urgent {
+  border-left: 3px solid var(--ex-blood);
+}
+
+.exercitium-deficit-name {
+  letter-spacing: var(--ex-tracking-sm);
+  text-transform: uppercase;
+  font-size: 0.8rem;
+}
+
+.exercitium-deficit-gap {
+  flex: 0 0 auto;
+  font-family: var(--ex-font-numeral);
+  font-size: 0.75rem;
+  color: #b0a890;
+  white-space: nowrap;
+}
+
+.exercitium-deficit-remedies {
+  margin: 0 0 0.5rem 0.5rem;
+}
