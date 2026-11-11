@@ -11,7 +11,7 @@ import {
   suggestibleDeficits,
   SUGGESTION_EXCLUDED_GROUPS,
 } from "./deficits";
-import { DEFAULT_LANDMARKS } from "./landmarks";
+import { DEFAULT_LANDMARKS, classifyVolume } from "./landmarks";
 import type { ExerciseFile, SessionFile } from "./schemas";
 
 
@@ -222,5 +222,49 @@ describe("suggestibleDeficits", () => {
 
   it("excludes exactly the two groups named", () => {
     expect([...SUGGESTION_EXCLUDED_GROUPS].sort()).toEqual(["calves", "core"]);
+  });
+});
+
+describe("agreement with the Sanctum", () => {
+  // The picker and the dashboard measure the same thing and must not
+  // disagree about it. They differ only in the QUESTION they ask: the
+  // Sanctum reports which band you are in, the picker asks whether you are
+  // below MAV. The underlying figure has to be identical.
+  it("carries the same band the Sanctum would show for the same figure", () => {
+    const exercises = [ex("bench", ["chest"]), ex("curl", ["biceps"])];
+    const sessions = [
+      session("2026-11-11", [
+        { name: "bench", sets: sets(11) },
+        { name: "curl", sets: sets(3) },
+      ]),
+    ];
+    const board = rankGroupDeficits(
+      sessions,
+      exercises,
+      DEFAULT_LANDMARKS,
+      "2026-11-11",
+    );
+    for (const d of board) {
+      expect(d.status).toBe(
+        classifyVolume(d.weeklySets, DEFAULT_LANDMARKS[d.group]),
+      );
+    }
+  });
+
+  it("still offers a group the Sanctum calls Productive", () => {
+    // Chest MEV 8, MAV 14. Eleven sets is squarely "Productive" and still
+    // three short of MAV — the picker has to keep offering it, or the plan
+    // tops out at the maintenance floor.
+    const exercises = [ex("bench", ["chest"])];
+    const sessions = [session("2026-11-11", [{ name: "bench", sets: sets(11) }])];
+    const board = rankGroupDeficits(
+      sessions,
+      exercises,
+      DEFAULT_LANDMARKS,
+      "2026-11-11",
+    );
+    const chest = board.find((d) => d.group === "chest")!;
+    expect(chest.status).toBe("mev_mav");
+    expect(suggestibleDeficits(board).map((d) => d.group)).toContain("chest");
   });
 });

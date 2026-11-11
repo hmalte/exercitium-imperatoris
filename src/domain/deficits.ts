@@ -34,16 +34,17 @@
 import type { ExerciseFile, SessionFile } from "./schemas";
 import {
   MUSCLE_TO_GROUP,
+  classifyVolume,
   weeklyAverage,
   type Landmarks,
   type MuscleGroup,
+  type VolumeStatus,
 } from "./landmarks";
 import { computeMuscleStats } from "./volume";
 import {
   addDays,
-  daysBetween,
   deriveCardioWeekRanges,
-  effectiveWindow,
+  trainingSpanDays,
   type ISODate,
   type LoA,
   type Session,
@@ -92,6 +93,10 @@ export type GroupDeficit = {
   toMav: number;
   /** Below the maintenance floor — worth calling out more loudly. */
   underMev: boolean;
+  /** The Sanctum's four-band classification for the same figure. Carried so
+   *  the picker can show the same word the dashboard uses, instead of the
+   *  two screens appearing to disagree about a muscle they both measured. */
+  status: VolumeStatus;
 };
 
 /**
@@ -113,12 +118,7 @@ export function rankGroupDeficits(
     rotationPosition: s.rotationPosition,
   }));
   const offRanges = [...loas, ...deriveCardioWeekRanges(tl)];
-  const { start } = effectiveWindow(today, DEFICIT_WINDOW_DAYS, offRanges);
-
-  // computeMuscleStats takes a plain day count, so widen the raw span to
-  // cover the stretch that holds our seven training days. Deload days inside
-  // it contribute nothing, which is the point.
-  const spanDays = daysBetween(start, today) + 1;
+  const spanDays = trainingSpanDays(today, DEFICIT_WINDOW_DAYS, offRanges);
   const stats = computeMuscleStats(sessions, exercises, spanDays, today);
 
   const setsByGroup = new Map<MuscleGroup, number>();
@@ -144,6 +144,7 @@ export function rankGroupDeficits(
       mav: marks.mav,
       toMav: Math.round(Math.max(0, marks.mav - weekly) * 10) / 10,
       underMev: weekly < marks.mev,
+      status: classifyVolume(weekly, marks),
     });
   }
 

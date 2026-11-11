@@ -155,6 +155,26 @@ export function effectiveWindow(
   return { start: cursor, end: endDate };
 }
 
+/**
+ * Calendar days spanned by the most recent `trainingDays` non-off days.
+ *
+ * Volume is a weekly RATE, so the denominator has to be days that were
+ * available for training. Measuring a plain trailing seven days through a
+ * deload divides real work by a week that included prescribed rest, and the
+ * result reads as a collapse the user caused by following the programme.
+ *
+ * Feed the return value to computeMuscleStats as its window, and divide the
+ * resulting sets by `trainingDays` rather than by this span.
+ */
+export function trainingSpanDays(
+  today: ISODate,
+  trainingDays: number,
+  offRanges: LoA[],
+): number {
+  const { start } = effectiveWindow(today, trainingDays, offRanges);
+  return daysBetween(start, today) + 1;
+}
+
 // -----------------------------------------------------------------------------
 // Streak
 // -----------------------------------------------------------------------------

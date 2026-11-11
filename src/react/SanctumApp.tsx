@@ -24,6 +24,7 @@ import { computeMuscleStats, type MuscleStats } from "../domain/volume";
 import {
   classifyVolume,
   weeklyAverage,
+  VOLUME_STATUS_LABEL,
   DEFAULT_LANDMARKS,
   MUSCLE_TO_GROUP,
   type Landmarks,
@@ -35,6 +36,11 @@ import {
   UNTRAINED_FALLBACK_QUOTE,
   mostWorkedMuscle,
 } from "../domain/muscleQuotes";
+import {
+  deriveCardioWeekRanges,
+  trainingSpanDays,
+  type Session,
+} from "../domain/timeLogic";
 import { AstartesBodyMap } from "./AstartesBodyMap";
 import { BackBar } from "./BackBar";
 import { type DisplayUnit, kgToDisplay, unitLabel } from "../domain/units";
@@ -136,7 +142,11 @@ function SanctumAppInner({
     useState<Record<MuscleGroup, Landmarks>>(DEFAULT_LANDMARKS);
   const [error, setError] = useState<string | null>(null);
 
-  const [windowDays, setWindowDays] = useState<WindowChoice>(31);
+  // Solar Week by default. MEV/MAV/MRV are weekly figures, so a seven-day
+  // view is the one the landmarks actually describe; a 31-day average is a
+  // different quantity wearing the same labels. It also lines the Sanctum
+  // up with the Ritual's accessory picker, which measures a week.
+  const [windowDays, setWindowDays] = useState<WindowChoice>(7);
   const [sortKey, setSortKey] = useState<SortKey>("sets");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
 
@@ -166,7 +176,17 @@ function SanctumAppInner({
 
   const baseRows = useMemo(() => {
     if (!sessions || !exercises) return null;
-    return computeMuscleStats(sessions, exercises, windowDays, today);
+    // Count back `windowDays` TRAINING days rather than calendar days, so a
+    // deload freezes the picture instead of halving it. Measured plainly,
+    // a week of prescribed rest read as a week of failure — the dashboard
+    // punished the user for following the programme.
+    const tl: Session[] = sessions.map((s) => ({
+      date: s.date,
+      isCardioWeek: s.isCardioWeek,
+      rotationPosition: s.rotationPosition,
+    }));
+    const span = trainingSpanDays(today, windowDays, deriveCardioWeekRanges(tl));
+    return computeMuscleStats(sessions, exercises, span, today);
   }, [sessions, exercises, windowDays, today]);
 
   // Aggregate per-muscle sets into per-group sets, then classify each group
@@ -481,12 +501,8 @@ function StatusPill({
   );
 }
 
-const STATUS_LABEL: Record<VolumeStatus, string> = {
-  under_mev: "Under MEV",
-  mev_mav: "Productive",
-  mav_mrv: "High",
-  over_mrv: "Over MRV",
-};
+// Re-exported name kept so the call sites below read unchanged.
+const STATUS_LABEL = VOLUME_STATUS_LABEL;
 
 const STATUS_EXPLAIN: Record<VolumeStatus, string> = {
   under_mev: "Not enough stimulus for growth. Add a set or two.",

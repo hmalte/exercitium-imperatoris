@@ -73,6 +73,7 @@ import {
 } from "../domain/deficits";
 import {
   DEFAULT_LANDMARKS,
+  VOLUME_STATUS_LABEL,
   type Landmarks,
   type MuscleGroup,
 } from "../domain/landmarks";
@@ -2041,9 +2042,13 @@ function AccessoryPicker({
               <span className="exercitium-deficit-name">
                 {prettyGroup(d.group)}
               </span>
+              {/* Same wording the Sanctum uses for the same figure, so the
+                  two screens stop looking like they contradict each other.
+                  A group can read "Productive" here and still be offered:
+                  productive-but-below-MAV is exactly the ground this plan
+                  is trying to climb. */}
               <span className="exercitium-deficit-gap">
-                {d.weeklySets} / {d.mav}
-                {d.underMev ? " · under MEV" : ""}
+                {d.weeklySets} / {d.mav} · {VOLUME_STATUS_LABEL[d.status]}
               </span>
             </button>
 

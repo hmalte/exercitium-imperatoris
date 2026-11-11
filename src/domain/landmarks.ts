@@ -101,6 +101,19 @@ export const DEFAULT_LANDMARKS: Record<MuscleGroup, Landmarks> = {
   core:        { mev: 6,  mav: 12, mrv: 20 },
 };
 
+/**
+ * Display wording for each band. Lives here rather than in a view because
+ * two screens show it — the Sanctum's table and the Ritual's accessory
+ * picker — and they looked like they disagreed about a muscle when they
+ * were only phrasing the same classification differently.
+ */
+export const VOLUME_STATUS_LABEL: Record<VolumeStatus, string> = {
+  under_mev: "Under MEV",
+  mev_mav: "Productive",
+  mav_mrv: "High",
+  over_mrv: "Over MRV",
+};
+
 // -----------------------------------------------------------------------------
 // Classification
 // -----------------------------------------------------------------------------
