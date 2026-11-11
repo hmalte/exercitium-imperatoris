@@ -212,7 +212,7 @@ export const SEED_EXERCISES: ExerciseFile[] = [
   },
   {
     id: "face_pull",
-    displayName: "Face Pull / Reverse Pec Deck",
+    displayName: "Face Pull",
     primaryMuscles: ["rear_delts"],
     secondaryMuscles: ["back"],
     rotationSlots: [],
@@ -221,9 +221,26 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     equipment: "cable",
     progression: "double",
     bodyweight: false,
-    // One slot, either movement — they hit the same muscle and the history
-    // is more useful pooled than split across two near-identical entries.
-    notes: "Face pull or reverse pec deck — whichever machine is free.",
+    notes: "",
+  },
+  {
+    id: "reverse_pec_deck",
+    displayName: "Reverse Pec Deck",
+    // Split out of face_pull. They were one entry on the reasoning that
+    // pooled history beats two near-identical lifts — which was wrong: the
+    // loads are nowhere near each other (face pulls logged at 45-60 lb, the
+    // pec deck at 100-135), so a single entry made the progression read as
+    // one lift tripling overnight. Same muscle, different machine, different
+    // numbers; they need separate histories to be legible.
+    primaryMuscles: ["rear_delts"],
+    secondaryMuscles: ["back"],
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
+    targetSets: SETS_4,
+    equipment: "machine",
+    progression: "double",
+    bodyweight: false,
+    notes: "",
   },
   {
     id: "cable_curl",
