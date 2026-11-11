@@ -52,6 +52,36 @@ import {
 /** Training days measured. Seven, because MEV/MAV are weekly figures. */
 export const DEFICIT_WINDOW_DAYS = 7;
 
+/**
+ * Groups the accessory picker will never suggest, by user request.
+ *
+ * They are still MEASURED — rankGroupDeficits returns them, the Sanctum
+ * charts them, and every set logged against them still counts toward their
+ * volume. This list governs what gets *offered* at the top of a session,
+ * nothing else. Both are here because they were surfacing constantly
+ * without being wanted: calves get no work in this programme at all, so
+ * they sit permanently at the head of the board, and core has a single
+ * unloadable movement, so the picker could only ever offer the same thing.
+ *
+ * Suggesting them anyway would train the user to ignore the board, which
+ * costs more than the groups are worth.
+ */
+export const SUGGESTION_EXCLUDED_GROUPS: readonly MuscleGroup[] = [
+  "calves",
+  "core",
+];
+
+/**
+ * The board as the picker should show it: still behind, and worth offering.
+ * Kept separate from rankGroupDeficits so the full ranking stays available
+ * to anything that wants the honest picture.
+ */
+export function suggestibleDeficits(board: GroupDeficit[]): GroupDeficit[] {
+  return board.filter(
+    (d) => d.toMav > 0 && !SUGGESTION_EXCLUDED_GROUPS.includes(d.group),
+  );
+}
+
 export type GroupDeficit = {
   group: MuscleGroup;
   /** Effective sets over the window, expressed as a weekly rate. */

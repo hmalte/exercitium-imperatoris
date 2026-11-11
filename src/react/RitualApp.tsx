@@ -68,6 +68,7 @@ import { suggestNext } from "../domain/progression";
 import {
   rankGroupDeficits,
   remediesFor,
+  suggestibleDeficits,
   type GroupDeficit,
 } from "../domain/deficits";
 import {
@@ -1997,10 +1998,11 @@ function AccessoryPicker({
 }) {
   const [openGroup, setOpenGroup] = useState<MuscleGroup | null>(null);
 
-  // Only groups still short of MAV are worth offering. Capped at a readable
-  // number: the point is the worst few, not a full audit — the Sanctum is
-  // there for the whole picture.
-  const behind = deficits.filter((d) => d.toMav > 0).slice(0, 8);
+  // Groups still short of MAV, minus the ones the user never wants offered.
+  // Capped at a readable number: the point is the worst few, not a full
+  // audit — the Sanctum is there for the whole picture, excluded groups
+  // included.
+  const behind = suggestibleDeficits(deficits).slice(0, 8);
   if (behind.length === 0) {
     return (
       <p className="exercitium-subtitle">

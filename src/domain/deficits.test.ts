@@ -4,7 +4,13 @@
 // thing a later edit could quietly undo. They get a test apiece.
 
 import { describe, it, expect } from "vitest";
-import { rankGroupDeficits, remediesFor, isDeloadDay } from "./deficits";
+import {
+  rankGroupDeficits,
+  remediesFor,
+  isDeloadDay,
+  suggestibleDeficits,
+  SUGGESTION_EXCLUDED_GROUPS,
+} from "./deficits";
 import { DEFAULT_LANDMARKS } from "./landmarks";
 import type { ExerciseFile, SessionFile } from "./schemas";
 
@@ -180,5 +186,41 @@ describe("isDeloadDay", () => {
     expect(isDeloadDay(sessions, "2026-11-02")).toBe(true);
     expect(isDeloadDay(sessions, "2026-11-08")).toBe(true);
     expect(isDeloadDay(sessions, "2026-11-09")).toBe(false);
+  });
+});
+
+describe("suggestibleDeficits", () => {
+  // Calves and core are measured like everything else but never offered.
+  // The distinction matters: excluding them from the RANKING would quietly
+  // stop their sets counting, which is not what was asked for.
+  it("keeps excluded groups in the ranking but out of the suggestions", () => {
+    const board = rankGroupDeficits([], [], DEFAULT_LANDMARKS, "2026-11-10");
+    const ranked = board.map((d) => d.group);
+    expect(ranked).toContain("calves");
+    expect(ranked).toContain("core");
+
+    const offered = suggestibleDeficits(board).map((d) => d.group);
+    expect(offered).not.toContain("calves");
+    expect(offered).not.toContain("core");
+    // Everything else behind MAV still comes through.
+    expect(offered).toContain("chest");
+  });
+
+  it("still drops groups that have reached MAV", () => {
+    const exercises = [ex("bench", ["chest"])];
+    const sessions = [session("2026-11-10", [{ name: "bench", sets: sets(14) }])];
+    const board = rankGroupDeficits(
+      sessions,
+      exercises,
+      DEFAULT_LANDMARKS,
+      "2026-11-10",
+    );
+    expect(suggestibleDeficits(board).map((d) => d.group)).not.toContain(
+      "chest",
+    );
+  });
+
+  it("excludes exactly the two groups named", () => {
+    expect([...SUGGESTION_EXCLUDED_GROUPS].sort()).toEqual(["calves", "core"]);
   });
 });
