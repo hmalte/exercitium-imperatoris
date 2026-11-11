@@ -56,7 +56,7 @@ function session(
 }
 
 const sets = (n: number) =>
-  Array.from({ length: n }, () => ({ reps: 8, weightKg: 50 }));
+  Array.from({ length: n }, () => ({ reps: 8, weightKg: 50, highEffort: false }));
 
 describe("rankGroupDeficits", () => {
   it("measures the gap to MAV, not to MEV", () => {

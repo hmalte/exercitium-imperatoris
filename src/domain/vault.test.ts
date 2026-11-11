@@ -25,7 +25,7 @@ const sampleSession: SessionFile = {
   cardioType: null,
   cleanseType: null,
   exercises: [
-    { name: "bench_press", sets: [{ reps: 6, weightKg: 80 }] },
+    { name: "bench_press", sets: [{ reps: 6, weightKg: 80, highEffort: false }] },
   ],
   notes: "",
 };

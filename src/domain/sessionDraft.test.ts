@@ -57,8 +57,8 @@ function sampleDraft(date: string): RitualDraft {
         displayName: "Bench Press",
         bodyweight: false,
         sets: [
-          { reps: 5, weightKg: 80 },
-          { reps: 5, weightKg: 82.5 },
+          { reps: 5, weightKg: 80, highEffort: false },
+          { reps: 5, weightKg: 82.5, highEffort: false },
         ],
         closed: false,
       },

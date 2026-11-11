@@ -87,7 +87,16 @@ export function loadRitualDraft(today: ISODate): RitualDraft | null {
     const parsed = JSON.parse(raw) as RitualDraft;
     if (parsed.version !== 2) return null;
     if (parsed.date !== today) return null;
-    return parsed;
+    // A draft saved before the effort flag existed has sets without it.
+    // Normalise rather than bump the schema version: discarding a
+    // half-logged workout over an optional tag would be a poor trade.
+    return {
+      ...parsed,
+      workingExercises: parsed.workingExercises.map((w) => ({
+        ...w,
+        sets: w.sets.map((set) => ({ ...set, highEffort: set.highEffort ?? false })),
+      })),
+    };
   } catch {
     return null;
   }

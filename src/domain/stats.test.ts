@@ -94,8 +94,8 @@ describe("bestEpleyForExercise", () => {
           {
             name: "bench_press",
             sets: [
-              { reps: 5, weightKg: 80 }, // 80 × (1 + 5/30) ≈ 93.33
-              { reps: 3, weightKg: 90 }, // 90 × (1 + 3/30) = 99
+              { reps: 5, weightKg: 80, highEffort: false }, // 80 × (1 + 5/30) ≈ 93.33
+              { reps: 3, weightKg: 90, highEffort: false }, // 90 × (1 + 3/30) = 99
             ],
           },
         ],
@@ -105,7 +105,7 @@ describe("bestEpleyForExercise", () => {
         exercises: [
           {
             name: "bench_press",
-            sets: [{ reps: 6, weightKg: 85 }], // 85 × 1.2 = 102
+            sets: [{ reps: 6, weightKg: 85, highEffort: false }], // 85 × 1.2 = 102
           },
         ],
       }),
@@ -114,7 +114,7 @@ describe("bestEpleyForExercise", () => {
         exercises: [
           {
             name: "other_lift",
-            sets: [{ reps: 1, weightKg: 999 }],
+            sets: [{ reps: 1, weightKg: 999, highEffort: false }],
           },
         ],
       }),
@@ -254,13 +254,13 @@ describe("weeklyVolumeByGroup", () => {
       session({
         date: "2026-04-13",
         exercises: [
-          { name: "bench_press", sets: [{ reps: 5, weightKg: 100 }] },
+          { name: "bench_press", sets: [{ reps: 5, weightKg: 100, highEffort: false }] },
         ],
       }),
       session({
         date: "2026-04-15",
         exercises: [
-          { name: "pullup", sets: [{ reps: 8, weightKg: 0 }] },
+          { name: "pullup", sets: [{ reps: 8, weightKg: 0, highEffort: false }] },
         ],
       }),
     ];
@@ -279,11 +279,11 @@ describe("weeklyVolumeByGroup", () => {
     const sessions = [
       session({
         date: "2026-04-06",
-        exercises: [{ name: "bench_press", sets: [{ reps: 5, weightKg: 100 }] }],
+        exercises: [{ name: "bench_press", sets: [{ reps: 5, weightKg: 100, highEffort: false }] }],
       }),
       session({
         date: "2026-04-20",
-        exercises: [{ name: "bench_press", sets: [{ reps: 5, weightKg: 100 }] }],
+        exercises: [{ name: "bench_press", sets: [{ reps: 5, weightKg: 100, highEffort: false }] }],
       }),
     ];
     const rows = weeklyVolumeByGroup(sessions, [bench]);
@@ -313,9 +313,9 @@ describe("oneRepMaxSeriesByLift", () => {
           {
             name: "bench_press",
             sets: [
-              { reps: 8, weightKg: 80 }, // 80 * (1+8/30) = 101.33
-              { reps: 3, weightKg: 100 }, // 100 * (1+3/30) = 110
-              { reps: 5, weightKg: 90 },  // 90 * (1+5/30) = 105
+              { reps: 8, weightKg: 80, highEffort: false }, // 80 * (1+8/30) = 101.33
+              { reps: 3, weightKg: 100, highEffort: false }, // 100 * (1+3/30) = 110
+              { reps: 5, weightKg: 90, highEffort: false },  // 90 * (1+5/30) = 105
             ],
           },
         ],
@@ -331,13 +331,13 @@ describe("oneRepMaxSeriesByLift", () => {
     const sessions = [
       session({
         date: "2026-04-01",
-        exercises: [{ name: "bench_press", sets: [{ reps: 5, weightKg: 100 }] }],
+        exercises: [{ name: "bench_press", sets: [{ reps: 5, weightKg: 100, highEffort: false }] }],
       }),
       session({
         date: "2026-04-03",
         exercises: [
-          { name: "bench_press", sets: [{ reps: 5, weightKg: 100 }] },
-          { name: "squat", sets: [{ reps: 5, weightKg: 120 }] },
+          { name: "bench_press", sets: [{ reps: 5, weightKg: 100, highEffort: false }] },
+          { name: "squat", sets: [{ reps: 5, weightKg: 120, highEffort: false }] },
         ],
       }),
     ];
@@ -351,7 +351,7 @@ describe("oneRepMaxSeriesByLift", () => {
     const sessions = [
       session({
         date: "2026-04-13",
-        exercises: [{ name: "pullup", sets: [{ reps: 8, weightKg: 0 }] }],
+        exercises: [{ name: "pullup", sets: [{ reps: 8, weightKg: 0, highEffort: false }] }],
       }),
     ];
     expect(oneRepMaxSeriesByLift(sessions, [pullup])).toEqual([]);
@@ -361,7 +361,7 @@ describe("oneRepMaxSeriesByLift", () => {
     const sessions = [
       session({
         date: "2026-04-13",
-        exercises: [{ name: "something_deleted", sets: [{ reps: 5, weightKg: 80 }] }],
+        exercises: [{ name: "something_deleted", sets: [{ reps: 5, weightKg: 80, highEffort: false }] }],
       }),
     ];
     expect(oneRepMaxSeriesByLift(sessions, [bench])).toEqual([]);

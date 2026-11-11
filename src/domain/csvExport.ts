@@ -34,6 +34,7 @@ export const CSV_HEADERS = [
   "set_index",
   "reps",
   "weight_kg",
+  "high_effort",
   "notes",
 ] as const;
 
@@ -89,6 +90,7 @@ export function sessionsToCsv(sessions: SessionFile[]): string {
             String(i),
             String(set.reps),
             String(set.weightKg),
+            set.highEffort ? "true" : "false",
             s.notes,
           ]
             .map(csvEscape)

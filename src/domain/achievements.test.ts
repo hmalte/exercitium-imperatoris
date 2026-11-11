@@ -92,7 +92,7 @@ describe("detectAchievements", () => {
       date: "2026-01-01",
       exercises: exercises.map((e) => ({
         name: e.id,
-        sets: [{ reps: 5, weightKg: 20 }],
+        sets: [{ reps: 5, weightKg: 20, highEffort: false }],
       })),
     });
     const result = detectAchievements({
@@ -120,9 +120,9 @@ describe("detectAchievements", () => {
     const sess = session({
       date: "2026-01-01",
       exercises: [
-        { name: "a", sets: [{ reps: 5, weightKg: 20 }] },
-        { name: "b", sets: [{ reps: 5, weightKg: 20 }] },
-        { name: "c", sets: [{ reps: 5, weightKg: 20 }] },
+        { name: "a", sets: [{ reps: 5, weightKg: 20, highEffort: false }] },
+        { name: "b", sets: [{ reps: 5, weightKg: 20, highEffort: false }] },
+        { name: "c", sets: [{ reps: 5, weightKg: 20, highEffort: false }] },
         { name: "d", sets: [] },
         { name: "e", sets: [] },
       ],
@@ -142,7 +142,7 @@ describe("detectAchievements", () => {
     const exercises = [ex("bench", ["chest"])];
     // 15 sets on bench → 15 effective sets on chest. Should ONLY fire the
     // fifteen card — promotion suppresses the ten card on the same group.
-    const sets = Array.from({ length: 15 }, () => ({ reps: 5, weightKg: 20 }));
+    const sets = Array.from({ length: 15 }, () => ({ reps: 5, weightKg: 20, highEffort: false }));
     const sess = session({
       date: "2026-01-01",
       exercises: [{ name: "bench", sets }],
@@ -166,6 +166,7 @@ describe("detectAchievements", () => {
     const tenSets = Array.from({ length: 10 }, () => ({
       reps: 5,
       weightKg: 20,
+      highEffort: false,
     }));
     const sess = session({
       date: "2026-01-01",
@@ -296,7 +297,7 @@ describe("detectAchievements", () => {
     // → 70 total, crosses 69. Should fire the rare card.
     const exercises = [ex("bench", ["chest"]), ex("row", ["back"])];
     const setOf = (n: number) =>
-      Array.from({ length: n }, () => ({ reps: 5, weightKg: 20 }));
+      Array.from({ length: n }, () => ({ reps: 5, weightKg: 20, highEffort: false }));
     const prior: SessionFile[] = [
       session({
         date: "2026-01-02",
@@ -327,7 +328,7 @@ describe("detectAchievements", () => {
     // session should not re-trigger.
     const exercises = [ex("bench", ["chest"])];
     const setOf = (n: number) =>
-      Array.from({ length: n }, () => ({ reps: 5, weightKg: 20 }));
+      Array.from({ length: n }, () => ({ reps: 5, weightKg: 20, highEffort: false }));
     const prior: SessionFile[] = [
       session({
         date: "2026-01-02",
@@ -354,7 +355,7 @@ describe("detectAchievements", () => {
     // Today's small session alone shouldn't trigger.
     const exercises = [ex("bench", ["chest"])];
     const setOf = (n: number) =>
-      Array.from({ length: n }, () => ({ reps: 5, weightKg: 20 }));
+      Array.from({ length: n }, () => ({ reps: 5, weightKg: 20, highEffort: false }));
     const prior: SessionFile[] = [
       session({
         date: "2025-12-27",
@@ -384,14 +385,16 @@ describe("detectAchievements", () => {
       ex("curl", ["biceps"]),
       ex("press", ["front_delts"]),
     ];
-    const oneSet = [{ reps: 5, weightKg: 20 }];
+    const oneSet = [{ reps: 5, weightKg: 20, highEffort: false }];
     const fifteenSets = Array.from({ length: 15 }, () => ({
       reps: 5,
       weightKg: 20,
+      highEffort: false,
     }));
     const tenSets = Array.from({ length: 10 }, () => ({
       reps: 5,
       weightKg: 20,
+      highEffort: false,
     }));
     // bench=15 sets → fifteen/chest; row=10 sets → ten/back; 5 distinct
     // exercises total → five-exercise card. No cardio modality, so no

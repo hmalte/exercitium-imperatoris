@@ -75,9 +75,9 @@ describe("computeMuscleStats", () => {
     const ex = exercise("bench_press", ["chest", "front_delts"], ["triceps"]);
     const sessions = [
       session("2026-04-18", "bench_press", [
-        { reps: 5, weightKg: 80 },
-        { reps: 5, weightKg: 80 },
-        { reps: 5, weightKg: 80 },
+        { reps: 5, weightKg: 80, highEffort: false },
+        { reps: 5, weightKg: 80, highEffort: false },
+        { reps: 5, weightKg: 80, highEffort: false },
       ]),
     ];
     const rows = computeMuscleStats(sessions, [ex], 14, "2026-04-19");
@@ -89,8 +89,8 @@ describe("computeMuscleStats", () => {
     const ex = exercise("bench_press", ["chest"], ["triceps"]);
     const sessions = [
       session("2026-04-18", "bench_press", [
-        { reps: 5, weightKg: 80 },
-        { reps: 5, weightKg: 80 },
+        { reps: 5, weightKg: 80, highEffort: false },
+        { reps: 5, weightKg: 80, highEffort: false },
       ]),
     ];
     const rows = computeMuscleStats(sessions, [ex], 14, "2026-04-19");
@@ -100,7 +100,7 @@ describe("computeMuscleStats", () => {
   it("computes tonnage as reps × weight, weighted by primary/secondary", () => {
     const ex = exercise("bench_press", ["chest"], ["triceps"]);
     const sessions = [
-      session("2026-04-18", "bench_press", [{ reps: 5, weightKg: 80 }]),
+      session("2026-04-18", "bench_press", [{ reps: 5, weightKg: 80, highEffort: false }]),
     ];
     const rows = computeMuscleStats(sessions, [ex], 14, "2026-04-19");
     expect(muscleRow(rows, "chest").tonnageKg).toBe(400); // 5 × 80
@@ -115,7 +115,7 @@ describe("computeMuscleStats", () => {
         ...session("2026-04-15", "pullup", [], 70),
         exercises: [],
       },
-      session("2026-04-18", "pullup", [{ reps: 8, weightKg: 0 }]),
+      session("2026-04-18", "pullup", [{ reps: 8, weightKg: 0, highEffort: false }]),
     ];
     const rows = computeMuscleStats(sessions, [pullup], 14, "2026-04-19");
     // 8 reps × 70 kg bodyweight = 560 kg tonnage on lats (primary).
@@ -130,7 +130,7 @@ describe("computeMuscleStats", () => {
     // e.g. weighted dips with a 10kg belt.
     const dips = exercise("dips", ["chest"], [], true);
     const sessions = [
-      session("2026-04-18", "dips", [{ reps: 6, weightKg: 10 }], 70),
+      session("2026-04-18", "dips", [{ reps: 6, weightKg: 10, highEffort: false }], 70),
     ];
     const rows = computeMuscleStats(sessions, [dips], 14, "2026-04-19");
     // (70 bodyweight + 10 belt) × 6 reps = 480 kg.
@@ -139,7 +139,7 @@ describe("computeMuscleStats", () => {
 
   it("falls back to 0 tonnage for bodyweight exercises when no bodyweight is known", () => {
     const pullup = exercise("pullup", ["lats"], [], true);
-    const sessions = [session("2026-04-18", "pullup", [{ reps: 8, weightKg: 0 }])];
+    const sessions = [session("2026-04-18", "pullup", [{ reps: 8, weightKg: 0, highEffort: false }])];
     const rows = computeMuscleStats(sessions, [pullup], 14, "2026-04-19");
     // Sets still count.
     expect(muscleRow(rows, "lats").sets).toBe(1);
@@ -151,8 +151,8 @@ describe("computeMuscleStats", () => {
   it("excludes sessions outside the rolling window", () => {
     const ex = exercise("bench_press", ["chest"], []);
     const sessions = [
-      session("2026-04-01", "bench_press", [{ reps: 5, weightKg: 80 }]), // too old
-      session("2026-04-18", "bench_press", [{ reps: 5, weightKg: 80 }]), // in window
+      session("2026-04-01", "bench_press", [{ reps: 5, weightKg: 80, highEffort: false }]), // too old
+      session("2026-04-18", "bench_press", [{ reps: 5, weightKg: 80, highEffort: false }]), // in window
     ];
     const rows = computeMuscleStats(sessions, [ex], 14, "2026-04-19");
     expect(muscleRow(rows, "chest").sets).toBe(1);
@@ -162,8 +162,8 @@ describe("computeMuscleStats", () => {
   it("skips unknown exercise ids without crashing", () => {
     const ex = exercise("bench_press", ["chest"], []);
     const sessions = [
-      session("2026-04-18", "mystery_lift", [{ reps: 5, weightKg: 80 }]),
-      session("2026-04-18", "bench_press", [{ reps: 5, weightKg: 80 }]),
+      session("2026-04-18", "mystery_lift", [{ reps: 5, weightKg: 80, highEffort: false }]),
+      session("2026-04-18", "bench_press", [{ reps: 5, weightKg: 80, highEffort: false }]),
     ];
     const rows = computeMuscleStats(sessions, [ex], 14, "2026-04-19");
     expect(muscleRow(rows, "chest").sets).toBe(1);

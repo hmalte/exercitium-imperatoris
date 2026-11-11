@@ -43,8 +43,8 @@ describe("sessionsToCsv", () => {
         {
           name: "bench_press",
           sets: [
-            { reps: 5, weightKg: 60 },
-            { reps: 5, weightKg: 62.5 },
+            { reps: 5, weightKg: 60, highEffort: false },
+            { reps: 5, weightKg: 62.5, highEffort: false },
           ],
         },
       ],
@@ -86,7 +86,7 @@ describe("sessionsToCsv", () => {
     const s = makeSession({
       notes: 'felt "strong", hit all reps\nemperor protects',
       exercises: [
-        { name: "bench_press", sets: [{ reps: 5, weightKg: 60 }] },
+        { name: "bench_press", sets: [{ reps: 5, weightKg: 60, highEffort: false }] },
       ],
     });
     const csv = sessionsToCsv([s]);
@@ -102,7 +102,7 @@ describe("sessionsToCsv", () => {
       sleepHours: null,
       bodyweightKg: null,
       exercises: [
-        { name: "squat", sets: [{ reps: 3, weightKg: 100 }] },
+        { name: "squat", sets: [{ reps: 3, weightKg: 100, highEffort: false }] },
       ],
     });
     const lines = sessionsToCsv([s]).trim().split("\n");

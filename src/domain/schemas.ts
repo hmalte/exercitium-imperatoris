@@ -127,6 +127,21 @@ export type CleanseType = (typeof CLEANSE_TYPES)[number];
 export type SetEntry = {
   reps: number;
   weightKg: number;
+  /**
+   * Marked by the user as a high-effort set — taken at or near failure.
+   *
+   * Volume landmarks (MEV/MAV/MRV) are defined over hard sets, while the
+   * app counts every logged set identically, so a loose set of fifteen
+   * weighs the same as a grinding five. This flag is the raw material for
+   * closing that gap.
+   *
+   * It does NOT yet change any number. Making effective volume count only
+   * tagged sets would reinterpret every set logged before the flag existed
+   * as not-hard, which would rewrite months of history by implication. The
+   * flag records first; the maths can follow once there is enough of it to
+   * mean something.
+   */
+  highEffort: boolean;
 };
 
 export type SessionExercise = {

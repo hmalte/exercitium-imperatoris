@@ -72,13 +72,13 @@ describe("Session file round-trip", () => {
         {
           name: "bench_press",
           sets: [
-            { reps: 6, weightKg: 80 },
-            { reps: 5, weightKg: 80 },
+            { reps: 6, weightKg: 80, highEffort: false },
+            { reps: 5, weightKg: 80, highEffort: false },
           ],
         },
         {
           name: "overhead_press",
-          sets: [{ reps: 8, weightKg: 45 }],
+          sets: [{ reps: 8, weightKg: 45, highEffort: false }],
         },
       ],
       notes: "Felt strong today.",
@@ -124,7 +124,7 @@ describe("Session file round-trip", () => {
       "exercises: []",
       "---",
       "",
-    ].join("\n");
+    ].join(String.fromCharCode(10));
     const parsed = parseSessionFile(legacy);
     expect(parsed.cleanseType).toBeNull();
     expect(parsed.date).toBe("2026-04-19");
@@ -140,8 +140,57 @@ describe("Session file round-trip", () => {
       "exercises: []",
       "---",
       "",
-    ].join("\n");
+    ].join(String.fromCharCode(10));
     expect(parseSessionFile(legacy).cardioType).toBeNull();
+  });
+
+  // The effort flag has to survive a save/load cycle, and a session file
+  // written before it existed has to keep loading.
+  it("round-trips the high-effort flag", () => {
+    const original: SessionFile = {
+      date: "2026-11-11",
+      rotationPosition: 0,
+      rotationSlot: "bench",
+      isCardioWeek: false,
+      sleepHours: null,
+      bodyweightKg: 80,
+      cardioMinutes: null,
+      cardioType: null,
+      cleanseType: null,
+      exercises: [
+        {
+          name: "bench_press",
+          sets: [
+            { reps: 5, weightKg: 70, highEffort: true },
+            { reps: 8, weightKg: 50, highEffort: false },
+          ],
+        },
+      ],
+      notes: "",
+    };
+    const parsed = parseSessionFile(serializeSessionFile(original));
+    expect(parsed.exercises[0].sets.map((s) => s.highEffort)).toEqual([
+      true,
+      false,
+    ]);
+  });
+
+  it("reads a set logged before the flag existed as not marked", () => {
+    const legacy = [
+      "---",
+      "date: '2026-09-01'",
+      "rotation_slot: bench",
+      "exercises:",
+      "  - name: bench_press",
+      "    sets:",
+      "      - reps: 5",
+      "        weight_kg: 70",
+      "---",
+      "",
+    ].join(String.fromCharCode(10));
+    const parsed = parseSessionFile(legacy);
+    expect(parsed.exercises[0].sets[0].highEffort).toBe(false);
+    expect(parsed.exercises[0].sets[0].reps).toBe(5);
   });
 });
 
@@ -201,7 +250,7 @@ describe("Exercise file round-trip", () => {
       "bodyweight: false",
       "---",
       "",
-    ].join("\n");
+    ].join(String.fromCharCode(10));
     const parsed = parseExerciseFile(legacy);
     expect(parsed.order).toBe(DEFAULT_EXERCISE_ORDER);
     expect(parsed.targetSets).toBe(DEFAULT_TARGET_SETS);

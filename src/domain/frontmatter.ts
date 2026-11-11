@@ -156,6 +156,9 @@ export function parseSessionFile(raw: string): SessionFile {
       return {
         reps: num(set.reps, 0),
         weightKg: num(set.weight_kg, 0),
+        // Absent on every set logged before the flag existed, which is
+        // most of them; bool() reads a missing key as false.
+        highEffort: bool(set.high_effort),
       };
     });
     return { name: str(ex.name), sets };
@@ -189,7 +192,11 @@ export function serializeSessionFile(session: SessionFile): string {
     cleanse_type: session.cleanseType,
     exercises: session.exercises.map((ex) => ({
       name: ex.name,
-      sets: ex.sets.map((s) => ({ reps: s.reps, weight_kg: s.weightKg })),
+      sets: ex.sets.map((s) => ({
+        reps: s.reps,
+        weight_kg: s.weightKg,
+        high_effort: s.highEffort,
+      })),
     })),
   };
   return joinFrontmatter(data, session.notes);

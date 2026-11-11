@@ -1500,6 +1500,7 @@ function CardioSessionStep({
   );
 }
 
+
 // Display order for the modality picker. March first — it's the default and
 // the more frequent of the two.
 const CARDIO_TYPE_ORDER: CardioType[] = ["march", "sprint"];
@@ -2154,6 +2155,11 @@ function SetLogger({
   // flash the PR banner and raise the bar. A single PR "sticks" on screen
   // until the user logs another set — no auto-dismiss, because the point
   // is to give them a moment to savor it.
+  // Deliberately NOT sticky. Weight carries between sets because it
+  // usually holds; effort does not — the last set of a run is the hard one.
+  // Carrying the flag forward would quietly mark easy sets as hard.
+  const [highEffort, setHighEffort] = useState(false);
+
   const [runningBestEpley, setRunningBestEpley] = useState(historicalBestEpley);
   const [prBanner, setPrBanner] = useState<null | { e1rm: number }>(null);
 
@@ -2164,7 +2170,8 @@ function SetLogger({
     // bodyweight exercises we still store a weight field so the shape
     // stays uniform — default to 0 when the user leaves it blank.
     const kg = parseInputWeight(weight, displayUnit) ?? 0;
-    onAddSet({ reps: r, weightKg: kg });
+    onAddSet({ reps: r, weightKg: kg, highEffort });
+    setHighEffort(false);
 
     // PR detection: only for weighted lifts (bodyweight Epley is always 0
     // or noise), and only once there's a real baseline to beat. Epley is
@@ -2250,7 +2257,10 @@ function SetLogger({
               {s.reps} reps
               {exercise.bodyweight && s.weightKg === 0
                 ? " · bodyweight"
-                : ` · ${formatWeight(s.weightKg, displayUnit)}`}{" "}
+                : ` · ${formatWeight(s.weightKg, displayUnit)}`}
+              {s.highEffort && (
+                <span className="exercitium-set-effort"> · high effort</span>
+              )}{" "}
               <button
                 className="exercitium-btn exercitium-btn-secondary"
                 style={{
@@ -2295,6 +2305,29 @@ function SetLogger({
           )}
           <button className="exercitium-btn" onClick={submit}>
             Log set
+          </button>
+        </div>
+      )}
+
+      {/* Effort tag: one button, pressed when the set was taken at or near
+          failure. Optional, and it changes no number today — it is the raw
+          material for making volume landmarks mean what they claim, since
+          those are defined over hard sets while the app counts every set
+          alike. Recording comes first; reinterpreting months of untagged
+          history on the strength of a new flag would not. */}
+      {!exercise.closed && (
+        <div className="exercitium-rir">
+          <button
+            type="button"
+            className={
+              "exercitium-effort-btn" +
+              (highEffort ? " exercitium-effort-btn-on" : "")
+            }
+            aria-pressed={highEffort}
+            title="Mark this set as taken at or near failure"
+            onClick={() => setHighEffort((v) => !v)}
+          >
+            {highEffort ? "✦ High effort" : "High effort?"}
           </button>
         </div>
       )}

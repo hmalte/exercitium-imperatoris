@@ -1935,3 +1935,37 @@ body.exercitium-active .workspace-leaf.mod-active .workspace-leaf-content {
 .exercitium-deficit-remedies {
   margin: 0 0 0.5rem 0.5rem;
 }
+
+/* ------------------------------------------------------------ Effort tag
+   One toggle under the reps/weight row, pressed when a set was taken at or
+   near failure. Quiet by default: tagging is optional and most sets will
+   go unmarked. */
+.exercitium-rir {
+  display: flex;
+  align-items: center;
+  margin-top: 0.4rem;
+}
+
+.exercitium-effort-btn {
+  padding: 0.25rem 0.6rem;
+  background: transparent;
+  border: 1px dashed #4a4438;
+  color: #b0a890;
+  font-size: 0.68rem;
+  letter-spacing: var(--ex-tracking-sm);
+  text-transform: uppercase;
+  cursor: pointer;
+}
+
+.exercitium-effort-btn:hover { border-color: #8a6f2a; color: #c9b57a; }
+
+.exercitium-effort-btn-on {
+  border-style: solid;
+  border-color: #caa03d;
+  color: #caa03d;
+}
+
+.exercitium-set-effort {
+  font-size: 0.78rem;
+  color: #caa03d;
+}

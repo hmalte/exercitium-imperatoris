@@ -39,8 +39,8 @@ describe("suggestNext", () => {
   it("adds one rep when the last top set stayed inside the rep range", () => {
     const sessions = [
       makeSession("2026-04-10", "bench_press", [
-        { reps: 5, weightKg: 80 },
-        { reps: 5, weightKg: 80 },
+        { reps: 5, weightKg: 80, highEffort: false },
+        { reps: 5, weightKg: 80, highEffort: false },
       ]),
     ];
     const result = suggestNext("bench_press", sessions);
@@ -53,8 +53,8 @@ describe("suggestNext", () => {
   it("adds weight and resets reps when the last top set hit the rep ceiling with load", () => {
     const sessions = [
       makeSession("2026-04-10", "bench_press", [
-        { reps: 8, weightKg: 80 },
-        { reps: 7, weightKg: 80 },
+        { reps: 8, weightKg: 80, highEffort: false },
+        { reps: 7, weightKg: 80, highEffort: false },
       ]),
     ];
     const result = suggestNext("bench_press", sessions);
@@ -67,7 +67,7 @@ describe("suggestNext", () => {
     // resetting to 3.
     const sessions = [
       makeSession("2026-04-10", "pullup", [
-        { reps: 8, weightKg: 0 },
+        { reps: 8, weightKg: 0, highEffort: false },
       ]),
     ];
     const result = suggestNext("pullup", sessions);
@@ -77,9 +77,9 @@ describe("suggestNext", () => {
 
   it("uses the most recent session when multiple exist", () => {
     const sessions = [
-      makeSession("2026-04-01", "bench_press", [{ reps: 5, weightKg: 70 }]),
-      makeSession("2026-04-15", "bench_press", [{ reps: 6, weightKg: 80 }]),
-      makeSession("2026-04-08", "bench_press", [{ reps: 5, weightKg: 75 }]),
+      makeSession("2026-04-01", "bench_press", [{ reps: 5, weightKg: 70, highEffort: false }]),
+      makeSession("2026-04-15", "bench_press", [{ reps: 6, weightKg: 80, highEffort: false }]),
+      makeSession("2026-04-08", "bench_press", [{ reps: 5, weightKg: 75, highEffort: false }]),
     ];
     const result = suggestNext("bench_press", sessions);
     expect(result.reps).toBe(7);
@@ -100,10 +100,10 @@ describe("suggestNext", () => {
         cardioMinutes: null,
         cardioType: null,
         cleanseType: null,
-        exercises: [{ name: "pullup", sets: [{ reps: 8, weightKg: 0 }] }],
+        exercises: [{ name: "pullup", sets: [{ reps: 8, weightKg: 0, highEffort: false }] }],
         notes: "",
       },
-      makeSession("2026-04-10", "bench_press", [{ reps: 5, weightKg: 80 }]),
+      makeSession("2026-04-10", "bench_press", [{ reps: 5, weightKg: 80, highEffort: false }]),
     ];
     const result = suggestNext("bench_press", sessions);
     expect(result.reps).toBe(6);
@@ -116,9 +116,9 @@ describe("suggestNext", () => {
     // downgrade the suggestion.
     const sessions = [
       makeSession("2026-04-10", "bench_press", [
-        { reps: 8, weightKg: 80 },
-        { reps: 5, weightKg: 80 },
-        { reps: 3, weightKg: 80 },
+        { reps: 8, weightKg: 80, highEffort: false },
+        { reps: 5, weightKg: 80, highEffort: false },
+        { reps: 3, weightKg: 80, highEffort: false },
       ]),
     ];
     const result = suggestNext("bench_press", sessions);
@@ -128,7 +128,7 @@ describe("suggestNext", () => {
 
   it("respects custom increment and rep range options", () => {
     const sessions = [
-      makeSession("2026-04-10", "squat", [{ reps: 6, weightKg: 100 }]),
+      makeSession("2026-04-10", "squat", [{ reps: 6, weightKg: 100, highEffort: false }]),
     ];
     const result = suggestNext("squat", sessions, {
       incrementKg: 5,

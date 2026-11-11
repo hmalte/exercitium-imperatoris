@@ -393,7 +393,7 @@ describe("applyShippedPlan", () => {
       // Deliberately a lift that is NOT on the current plan: its history has
       // to survive the reshuffle that dropped it.
       exercises: [
-        { name: "tricep_pushdown", sets: [{ reps: 8, weightKg: 30 }] },
+        { name: "tricep_pushdown", sets: [{ reps: 8, weightKg: 30, highEffort: false }] },
       ],
       notes: "",
     });
@@ -402,7 +402,7 @@ describe("applyShippedPlan", () => {
 
     const [session] = await loadAllSessions(adapter);
     expect(session.exercises[0].name).toBe("tricep_pushdown");
-    expect(session.exercises[0].sets).toEqual([{ reps: 8, weightKg: 30 }]);
+    expect(session.exercises[0].sets).toEqual([{ reps: 8, weightKg: 30, highEffort: false }]);
     // The definition it points at still exists, so volume still credits it.
     expect(await adapter.exists("exercises/tricep_pushdown.md")).toBe(true);
   });
