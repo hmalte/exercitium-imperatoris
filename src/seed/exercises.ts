@@ -159,6 +159,34 @@ export const SEED_EXERCISES: ExerciseFile[] = [
     notes: "",
   },
   {
+    id: "trap_bar_deadlift",
+    displayName: "Trap Bar Deadlift",
+    // Mapped deliberately differently from the straight-bar deadlift above.
+    // The handles sit either side of the load, so the bar path runs through
+    // the body rather than in front of it: the torso stays more upright,
+    // the knees travel further, and the lift behaves like a loaded squat
+    // with a deadlift's grip demand. Quads lead here where they are merely
+    // secondary on the conventional pull, and the erectors drop to
+    // secondary because they are holding a far shorter lever.
+    //
+    // That difference is the whole reason it gets its own entry rather than
+    // sharing the deadlift's: pooled under one id, the Sanctum would credit
+    // trap bar work to the lower back at full weight and under-credit the
+    // quads, and the progression suggestion would compare two lifts whose
+    // loads are nowhere near each other.
+    primaryMuscles: ["quads", "glutes", "hamstrings"],
+    secondaryMuscles: ["lower_back", "back", "forearms"],
+    rotationSlots: [],
+    order: DEFAULT_EXERCISE_ORDER,
+    targetSets: SETS_4,
+    equipment: "barbell",
+    // Heavy compound, so weight climbs session to session rather than
+    // waiting for the rep range to top out.
+    progression: "linear",
+    bodyweight: false,
+    notes: "",
+  },
+  {
     id: "seated_row",
     displayName: "Seated Cable Row",
     primaryMuscles: ["back"],
