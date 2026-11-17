@@ -39,7 +39,13 @@
 
 import type { ExerciseFile, SessionFile } from "./schemas";
 import { MUSCLE_TO_GROUP, type MuscleGroup } from "./landmarks";
-import { addDays, type ISODate } from "./timeLogic";
+import {
+  addDays,
+  deriveCardioWeekRanges,
+  trainingSpanDays,
+  type ISODate,
+  type Session,
+} from "./timeLogic";
 import type {
   CompanionQuote,
   CompanionQuotes,
@@ -241,7 +247,11 @@ export function detectAchievements(args: {
   // three-card on its third save and the five-card on its fifth, so the two
   // never compete for the same moment — but if the user somehow lands both
   // on one save (e.g. backfilled sessions), five sorts above three.
-  const sessionCutoff = addDays(today, -(SESSION_WEEK_WINDOW_DAYS - 1));
+  const sessionCutoff = availableWindowStart(
+    [...priorSessions, sessionBeingSaved],
+    today,
+    SESSION_WEEK_WINDOW_DAYS,
+  );
   const priorSessionDates = sessionDatesInWindow(
     priorSessions,
     sessionCutoff,
@@ -290,6 +300,33 @@ export function detectAchievements(args: {
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
+
+/**
+ * Start of a window holding the last `days` days the user could have
+ * trained — deload days skipped.
+ *
+ * The streak and the volume engine already measured "available days" while
+ * these counters measured raw calendar days, so during a deload the streak
+ * protected the user and the weekly conditions quietly punished them for
+ * the same week of prescribed rest. This gives all four one notion of a
+ * week.
+ *
+ * Sessions logged ON a deload day still count: the window is a span of
+ * calendar dates, and a cardio day inside it is a day you showed up.
+ */
+function availableWindowStart(
+  sessions: SessionFile[],
+  today: ISODate,
+  days: number,
+): ISODate {
+  const tl: Session[] = sessions.map((s) => ({
+    date: s.date,
+    isCardioWeek: s.isCardioWeek,
+    rotationPosition: s.rotationPosition,
+  }));
+  const span = trainingSpanDays(today, days, deriveCardioWeekRanges(tl));
+  return addDays(today, -(span - 1));
+}
 
 function order(kind: AchievementKind): number {
   // Rare first — it represents the biggest span of effort (a whole week)
@@ -374,7 +411,7 @@ export function weeklySessionCount(
   sessions: SessionFile[],
   today: ISODate,
 ): number {
-  const cutoff = addDays(today, -(SESSION_WEEK_WINDOW_DAYS - 1));
+  const cutoff = availableWindowStart(sessions, today, SESSION_WEEK_WINDOW_DAYS);
   return sessionDatesInWindow(sessions, cutoff, today).size;
 }
 
@@ -432,7 +469,7 @@ export function cardioDayCount(
   today: ISODate,
   windowDays: number = CARDIO_WINDOW_DAYS,
 ): number {
-  const cutoff = addDays(today, -(windowDays - 1));
+  const cutoff = availableWindowStart(sessions, today, windowDays);
   return cardioDatesInWindow(sessions, cutoff, today).size;
 }
 

@@ -621,6 +621,27 @@ describe("detectAchievements — weekly session count", () => {
     ).toBe(1);
   });
 
+  // The deload rule, now shared with the streak and the volume engine.
+  // Before this, a week of prescribed rest pushed real sessions out of the
+  // weekly window and the user lost a condition for resting on schedule.
+  it("does not let a deload week push sessions out of the weekly window", () => {
+    const deload = (d: string): SessionFile =>
+      session({ date: d, isCardioWeek: true, rotationSlot: "cardio" });
+
+    // Three sessions, then a deload, then today. On a plain calendar week
+    // those three have aged out; counting available days keeps them in.
+    const sessions = [
+      day("2026-01-01"),
+      day("2026-01-02"),
+      day("2026-01-03"),
+      deload("2026-01-05"),
+      deload("2026-01-07"),
+    ];
+    expect(weeklySessionCount(sessions, "2026-01-09")).toBeGreaterThanOrEqual(
+      3,
+    );
+  });
+
   it("attaches a quote from the matching pool", () => {
     const [card] = detectAchievements({
       sessionBeingSaved: day("2026-01-03"),

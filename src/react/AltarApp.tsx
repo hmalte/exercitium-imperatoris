@@ -89,6 +89,9 @@ export type AltarAppProps = {
   reloadNonce?: number;
 };
 
+/** Minutes logged by one press of the offering button. */
+const OFFERING_MINUTES = 30;
+
 // Loaded vault state. Kept in one object so we can flip from null→loaded in
 // a single setState and not render half-populated panels.
 type LoadedState = {
@@ -127,6 +130,11 @@ export function AltarApp({
   const [splash, setSplash] = useState(true);
   // UI-only state for the deployment form.
   const [deployOpen, setDeployOpen] = useState(false);
+  /** Transient confirmation for the instant-cardio button. The Altar has no
+   *  toast, and the 31-day tally only moves when the DATE is new, so a
+   *  second offering on the same day would otherwise look like nothing
+   *  happened. */
+  const [offering, setOffering] = useState<string | null>(null);
   const [deployDays, setDeployDays] = useState("");
   // Mirror of the plugin's displayUnit setting, so toggling feels instant
   // on the Altar without needing to re-mount the view. Any change here is
@@ -192,6 +200,61 @@ export function AltarApp({
       setReloadKey((k) => k + 1);
     } catch (e) {
       setError(`Failed to declare deployment: ${String(e)}`);
+    }
+  };
+
+  /**
+   * Log 30 minutes of cardio against today, without leaving the Altar.
+   *
+   * Merges rather than overwrites. saveSession keys on the date and writes
+   * `sessions/<date>.md` wholesale, so creating a fresh cardio session here
+   * would destroy a workout already logged today — the lifts, the sets, the
+   * lot. Instead: read today's session if there is one, add the minutes to
+   * whatever cardio it already holds, and leave every other field alone.
+   *
+   * Additive on purpose. Pressing twice is a reasonable way to say "I did
+   * an hour", and it also makes a double-tap harmless rather than silently
+   * idempotent.
+   */
+  const offerToSlaanesh = async () => {
+    try {
+      const all = await loadAllSessions(adapter);
+      const existing = all.find((s) => s.date === today) ?? null;
+
+      const next: SessionFile = existing
+        ? {
+            ...existing,
+            cardioMinutes: (existing.cardioMinutes ?? 0) + OFFERING_MINUTES,
+            cardioType: existing.cardioType ?? "march",
+          }
+        : {
+            date: today,
+            // No lifting happened, so the rotation must not advance — the
+            // day it had queued up is still queued up afterwards.
+            rotationPosition: null,
+            rotationSlot: "cardio",
+            // Not a deload. Flagging it true would reset the six-weekly
+            // counter and put the Altar to sleep for a week.
+            isCardioWeek: false,
+            sleepHours: null,
+            bodyweightKg: null,
+            cardioMinutes: OFFERING_MINUTES,
+            cardioType: "march",
+            cleanseType: null,
+            exercises: [],
+            notes: "An offering made in haste.",
+          };
+
+      await saveSession(adapter, next);
+      setOffering(
+        `${next.cardioMinutes} minutes offered.` +
+          (existing && existing.exercises.length > 0
+            ? " Today's lifts are untouched."
+            : ""),
+      );
+      setReloadKey((k) => k + 1);
+    } catch (e) {
+      setError(`The offering was refused: ${String(e)}`);
     }
   };
 
@@ -518,6 +581,18 @@ export function AltarApp({
       >
         Freestyle — train off the plan
       </button>
+
+      {/* Thirty minutes logged where you stand, no Ritual, no navigation.
+          For cardio done elsewhere that still ought to count. */}
+      <button
+        className="exercitium-btn exercitium-btn-secondary exercitium-cardio-only-btn"
+        onClick={() => void offerToSlaanesh()}
+      >
+        Offering to Slaanesh — {OFFERING_MINUTES} min cardio
+      </button>
+      {offering && (
+        <p className="exercitium-offering-note">{offering}</p>
+      )}
 
       {/* Skip this rotation — only shown when not currently paused in an
           LoA or cardio window (those already pause the rotation). Writes

@@ -1969,3 +1969,14 @@ body.exercitium-active .workspace-leaf.mod-active .workspace-leaf-content {
   font-size: 0.78rem;
   color: #caa03d;
 }
+
+/* Confirmation line under the offering button. The 31-day cardio tally only
+   moves when the DATE is new, so a second offering on the same day would
+   otherwise look like nothing happened. */
+.exercitium-offering-note {
+  margin: 0.35rem 0 0 0;
+  font-size: 0.75rem;
+  font-style: italic;
+  color: #c9b57a;
+  text-align: center;
+}
